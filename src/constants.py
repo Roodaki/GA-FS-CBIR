@@ -1,22 +1,26 @@
 # src/constants.py
 
-# Path to Corel 1K Dataset images
+import os
+
+# Dataset paths
 IMAGE_DATASET_PATH = "data/corel-1k/"
-
-# Path to save CSV files of histograms
 HISTOGRAM_OUTPUT_PATH = "data/histograms"
+RETRIEVED_IMAGES_PATH = "data/retrieved_images"
 
-# Number of bins for all histograms
-HISTOGRAM_BINS = 256  # Using 256 bins for all color spaces
+# CSV file containing image histograms
+CSV_FILENAME = "combined_histograms.csv"
+CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 
-# Image file extension for dataset
+# Image file extension
 IMAGE_FILE_EXTENSION = ".jpg"
 
-# List of image processing constants
+# Image processing constants
 IMAGE_SIZE = (256, 256)  # Resize images to this size for faster processing
+HISTOGRAM_BINS = 256  # Number of bins for histograms
 
-# Color spaces for transformation
+# Color spaces
 COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}
 
-# Filename for the CSV file that stores histogram data
-CSV_FILENAME = "combined_histograms.csv"
+# KNN retrieval constants
+K_NEIGHBORS = 10  # Number of images to retrieve
+DISTANCE_METRIC = "euclidean"  # Distance metric for KNN ('euclidean', 'cosine', etc.)
