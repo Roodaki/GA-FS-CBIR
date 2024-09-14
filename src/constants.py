@@ -23,4 +23,3 @@ COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}
 
 # KNN retrieval constants
 K_NEIGHBORS = 10  # Number of images to retrieve
-DISTANCE_METRIC = "euclidean"  # Distance metric for KNN ('euclidean', 'cosine', etc.)

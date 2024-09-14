@@ -5,6 +5,7 @@ import shutil
 import pandas as pd
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+from scipy.spatial.distance import canberra  # Import Canberra distance
 from src.constants import (
     CSV_FILE_PATH,
     IMAGE_DATASET_PATH,
@@ -23,13 +24,26 @@ def row_index_to_filename(row_index):
     Returns:
         str: The corresponding image filename (e.g., "0.jpg" for row 2).
     """
-    # The filename is the row index - 2, with ".jpg" extension
     image_filename = f"{row_index - 2}.jpg"
     return image_filename
 
 
+def canberra_distance(u, v):
+    """
+    Custom function to calculate the Canberra distance.
+
+    Args:
+        u (np.ndarray): First vector.
+        v (np.ndarray): Second vector.
+
+    Returns:
+        float: Canberra distance between u and v.
+    """
+    return canberra(u, v)
+
+
 def retrieve_similar_images(
-    input_histogram, num_neighbors=K_NEIGHBORS, distance_metric=DISTANCE_METRIC
+    input_histogram, num_neighbors=K_NEIGHBORS, distance_metric=canberra_distance
 ):
     """
     Retrieve the most similar images using KNN based on the input image's histogram.
@@ -37,7 +51,7 @@ def retrieve_similar_images(
     Args:
         input_histogram (np.ndarray): Histogram of the input image.
         num_neighbors (int): Number of nearest neighbors to retrieve.
-        distance_metric (str): Distance metric for KNN ('euclidean', 'cosine', etc.).
+        distance_metric (callable): Custom distance function, e.g., Canberra distance.
 
     Returns:
         list of str: List of filenames for the retrieved images.
@@ -45,17 +59,17 @@ def retrieve_similar_images(
     # Load precomputed histograms from the CSV file
     histogram_data = pd.read_csv(CSV_FILE_PATH)
 
-    # Extract histogram data (ignoring the first 2 rows, assuming these are not valid)
-    histograms = histogram_data.iloc[2:, :].values  # Start from row 2 (index 2)
+    # Extract histogram data (ignoring the first 2 rows)
+    histograms = histogram_data.iloc[2:, :].values
 
-    # Initialize KNN model
+    # Initialize KNN model with a custom metric (Canberra distance)
     knn_model = NearestNeighbors(n_neighbors=num_neighbors, metric=distance_metric)
     knn_model.fit(histograms)
 
     # Find K nearest neighbors
     distances, indices = knn_model.kneighbors([input_histogram])
 
-    # Map indices to filenames (each index corresponds to row number minus 2)
+    # Map indices to filenames
     retrieved_filenames = [row_index_to_filename(idx) for idx in indices[0]]
     return retrieved_filenames
 
@@ -67,7 +81,6 @@ def save_retrieved_images(retrieved_image_filenames):
     Args:
         retrieved_image_filenames (list): List of filenames of the retrieved images.
     """
-    # Ensure the output directory exists
     os.makedirs(RETRIEVED_IMAGES_PATH, exist_ok=True)
 
     for image_filename in retrieved_image_filenames:
