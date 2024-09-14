@@ -24,7 +24,7 @@ def row_index_to_filename(row_index):
     Returns:
         str: The corresponding image filename (e.g., "0.jpg" for row 2).
     """
-    image_filename = f"{row_index - 2}.jpg"
+    image_filename = f"{row_index - 1}.jpg"
     return image_filename
 
 
@@ -60,7 +60,7 @@ def retrieve_similar_images(
     histogram_data = pd.read_csv(CSV_FILE_PATH)
 
     # Extract histogram data (ignoring the first 2 rows)
-    histograms = histogram_data.iloc[2:, :].values
+    histograms = histogram_data.iloc[1:, :].values
 
     # Initialize KNN model with a custom metric (Canberra distance)
     knn_model = NearestNeighbors(n_neighbors=num_neighbors, metric=distance_metric)
