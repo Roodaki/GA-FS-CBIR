@@ -22,4 +22,7 @@ HISTOGRAM_BINS = 256  # Number of bins for histograms
 COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}
 
 # KNN retrieval constants
-K_NEIGHBORS = 10  # Number of images to retrieve
+K_NEIGHBORS = 100  # Number of images to retrieve
+
+# Evaluation metrics constants
+NUM_CLASSES = 10  # Number of classes in the dataset (0-999 with 100 per class)
