@@ -1,11 +1,12 @@
 # src/process_image.py
 
 import os
-import pandas as pd
 from utils.image_utils import read_and_resize_image, convert_image_to_color_spaces
 from utils.histogram_utils import (
     compute_histogram,
+    compute_2d_histogram,
     plot_and_save_histograms,
+    plot_and_save_2d_histograms,
     append_histogram_to_csv,
 )
 from src.constants import (
@@ -13,6 +14,7 @@ from src.constants import (
     HISTOGRAM_OUTPUT_PATH,
     CSV_FILENAME,
     IMAGE_FILE_EXTENSION,
+    COLOR_SPACES,
 )
 
 
@@ -36,19 +38,106 @@ def process_image(image_filename, csv_filename):
         )
         os.makedirs(image_folder, exist_ok=True)
 
+        # Directories for 1D and 2D histograms
+        one_d_histograms_folder = os.path.join(image_folder, "1d_histograms")
+        two_d_histograms_folder = os.path.join(image_folder, "2d_histograms")
+
+        os.makedirs(one_d_histograms_folder, exist_ok=True)
+        os.makedirs(two_d_histograms_folder, exist_ok=True)
+
+        # 1D Histogram Folders
+        for color_space in COLOR_SPACES.values():
+            os.makedirs(
+                os.path.join(one_d_histograms_folder, color_space), exist_ok=True
+            )
+
+        # 2D Histogram Folders
+        intra_colorspace_folder = os.path.join(
+            two_d_histograms_folder, "intra_colorspace"
+        )
+        inter_colorspace_folder = os.path.join(
+            two_d_histograms_folder, "inter_colorspace"
+        )
+
+        os.makedirs(intra_colorspace_folder, exist_ok=True)
+        os.makedirs(inter_colorspace_folder, exist_ok=True)
+
+        for color_space in COLOR_SPACES.values():
+            os.makedirs(
+                os.path.join(intra_colorspace_folder, color_space), exist_ok=True
+            )
+
+        # Compute and save 1D histograms
         all_histograms = {}
         for color_space, color_space_image in color_space_images.items():
-            # Create sub-directory for each color space
-            color_space_folder = os.path.join(image_folder, color_space)
-            os.makedirs(color_space_folder, exist_ok=True)
-
             histograms = compute_histogram(color_space_image, color_space)
             all_histograms[color_space] = histograms
 
             # Save each histogram as a JPG file
-            plot_and_save_histograms(histograms, color_space_folder)
+            plot_and_save_histograms(
+                histograms, os.path.join(one_d_histograms_folder, color_space)
+            )
 
-        # Append the histogram data to the CSV file
+        # Compute and save 2D histograms (intra-color space)
+        all_2d_histograms = {}
+        for color_space in COLOR_SPACES.values():
+            for channel1 in range(3):
+                for channel2 in range(3):
+                    hist_key = f"{color_space}_Channel_{channel1}_vs_{color_space}_Channel_{channel2}"
+                    channel1_image = color_space_images[color_space][:, :, channel1]
+                    channel2_image = color_space_images[color_space][:, :, channel2]
+                    hist_2d = compute_2d_histogram(
+                        channel1_image, channel2_image, color_space, color_space
+                    )
+                    all_2d_histograms[hist_key] = hist_2d
+
+        # Save intra-color space 2D histograms
+        for color_space in COLOR_SPACES.values():
+            intra_color_space_histograms = {
+                k: v for k, v in all_2d_histograms.items() if f"{color_space}" in k
+            }
+            plot_and_save_2d_histograms(
+                intra_color_space_histograms,
+                os.path.join(intra_colorspace_folder, color_space),
+            )
+
+        # Compute and save inter-color space 2D histograms
+        all_inter_2d_histograms = {}
+        for cs1 in COLOR_SPACES.values():
+            for cs2 in COLOR_SPACES.values():
+                if cs1 != cs2:
+                    for channel1 in range(3):
+                        for channel2 in range(3):
+                            hist_key = (
+                                f"{cs1}_Channel_{channel1}_vs_{cs2}_Channel_{channel2}"
+                            )
+                            channel1_image = color_space_images[cs1][:, :, channel1]
+                            channel2_image = color_space_images[cs2][:, :, channel2]
+                            hist_2d = compute_2d_histogram(
+                                channel1_image, channel2_image, cs1, cs2
+                            )
+                            all_inter_2d_histograms[hist_key] = hist_2d
+
+        # Save inter-color space 2D histograms
+        for cs1 in COLOR_SPACES.values():
+            for cs2 in COLOR_SPACES.values():
+                if cs1 != cs2:
+                    folder_name = f"{cs1}_vs_{cs2}"
+                    inter_color_space_folder_path = os.path.join(
+                        inter_colorspace_folder, folder_name
+                    )
+                    os.makedirs(inter_color_space_folder_path, exist_ok=True)
+                    inter_color_space_histograms = {
+                        k: v
+                        for k, v in all_inter_2d_histograms.items()
+                        if f"{cs1}_Channel_" in k and f"vs_{cs2}_Channel_" in k
+                    }
+                    plot_and_save_2d_histograms(
+                        inter_color_space_histograms,
+                        inter_color_space_folder_path,
+                    )
+
+        # Append histogram data to CSV
         append_histogram_to_csv(image_filename, all_histograms, csv_filename)
 
         print(f"Processed and saved histograms for {image_filename}")

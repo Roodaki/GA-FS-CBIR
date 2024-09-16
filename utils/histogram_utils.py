@@ -23,9 +23,24 @@ def compute_histogram(image, color_space):
     return histograms
 
 
+def compute_2d_histogram(channel1, channel2, color_space1, color_space2):
+    """
+    Computes a 2D histogram between two channels from potentially different color spaces.
+    """
+    hist = cv2.calcHist(
+        [channel1, channel2],
+        [0, 1],
+        None,
+        [HISTOGRAM_BINS, HISTOGRAM_BINS],
+        [0, 256, 0, 256],
+    )
+    hist = hist.flatten()
+    return hist
+
+
 def plot_and_save_histograms(histograms, output_folder):
     """
-    Plots histograms for each channel and saves them as JPG files in the specified folder.
+    Plots 1D histograms for each color channel and saves them into the specified folder.
     """
     for key, hist in histograms.items():
         plt.figure(figsize=(10, 4))
@@ -33,6 +48,26 @@ def plot_and_save_histograms(histograms, output_folder):
         plt.title(key)
         plt.xlabel("Bin")
         plt.ylabel("Frequency")
+        plt.tight_layout()
+
+        # Construct file path
+        histogram_filename = os.path.join(output_folder, f"{key}.jpg")
+        plt.savefig(histogram_filename)
+        plt.close()
+
+
+def plot_and_save_2d_histograms(histograms, output_folder):
+    """
+    Plots 2D histograms and saves them into the specified folder.
+    """
+    for key, hist in histograms.items():
+        hist = hist.reshape(HISTOGRAM_BINS, HISTOGRAM_BINS)
+        plt.figure(figsize=(10, 10))
+        plt.imshow(hist, interpolation="nearest", cmap="hot")
+        plt.title(key)
+        plt.xlabel("Bin")
+        plt.ylabel("Bin")
+        plt.colorbar()
         plt.tight_layout()
 
         # Construct file path
@@ -56,7 +91,6 @@ def append_histogram_to_csv(image_filename, histograms, csv_filename):
     for color_space, histograms_dict in histograms.items():
         for channel_key, histogram in histograms_dict.items():
             for bin_idx in range(HISTOGRAM_BINS):
-                # Updated to remove image_filename from the column name
                 row[f"{color_space}_Channel_{channel_key}_Bin_{bin_idx}"] = histogram[
                     bin_idx
                 ]
