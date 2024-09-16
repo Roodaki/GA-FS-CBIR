@@ -85,13 +85,14 @@ def process_image(image_filename, csv_filename):
         for color_space in COLOR_SPACES.values():
             for channel1 in range(3):
                 for channel2 in range(3):
-                    hist_key = f"{color_space}_Channel_{channel1}_vs_{color_space}_Channel_{channel2}"
-                    channel1_image = color_space_images[color_space][:, :, channel1]
-                    channel2_image = color_space_images[color_space][:, :, channel2]
-                    hist_2d = compute_2d_histogram(
-                        channel1_image, channel2_image, color_space, color_space
-                    )
-                    all_2d_histograms[hist_key] = hist_2d
+                    if channel1 != channel2:  # Skip self-comparison
+                        hist_key = f"{color_space}_Channel_{channel1}_vs_{color_space}_Channel_{channel2}"
+                        channel1_image = color_space_images[color_space][:, :, channel1]
+                        channel2_image = color_space_images[color_space][:, :, channel2]
+                        hist_2d = compute_2d_histogram(
+                            channel1_image, channel2_image, color_space, color_space
+                        )
+                        all_2d_histograms[hist_key] = hist_2d
 
         # Save intra-color space 2D histograms
         for color_space in COLOR_SPACES.values():
