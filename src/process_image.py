@@ -1,5 +1,3 @@
-# src/process_image.py
-
 import os
 from utils.image_utils import read_and_resize_image, convert_image_to_color_spaces
 from utils.histogram_utils import (
@@ -15,6 +13,10 @@ from src.constants import (
     CSV_FILENAME,
     IMAGE_FILE_EXTENSION,
     COLOR_SPACES,
+    ONE_D_HISTOGRAMS_DIR,
+    TWO_D_HISTOGRAMS_DIR,
+    INTRA_COLORSPACE_DIR,
+    INTER_COLORSPACE_DIR,
 )
 
 
@@ -39,8 +41,8 @@ def process_image(image_filename, csv_filename):
         os.makedirs(image_folder, exist_ok=True)
 
         # Directories for 1D and 2D histograms
-        one_d_histograms_folder = os.path.join(image_folder, "1d_histograms")
-        two_d_histograms_folder = os.path.join(image_folder, "2d_histograms")
+        one_d_histograms_folder = os.path.join(image_folder, ONE_D_HISTOGRAMS_DIR)
+        two_d_histograms_folder = os.path.join(image_folder, TWO_D_HISTOGRAMS_DIR)
 
         os.makedirs(one_d_histograms_folder, exist_ok=True)
         os.makedirs(two_d_histograms_folder, exist_ok=True)
@@ -53,10 +55,10 @@ def process_image(image_filename, csv_filename):
 
         # 2D Histogram Folders
         intra_colorspace_folder = os.path.join(
-            two_d_histograms_folder, "intra_colorspace"
+            two_d_histograms_folder, INTRA_COLORSPACE_DIR
         )
         inter_colorspace_folder = os.path.join(
-            two_d_histograms_folder, "inter_colorspace"
+            two_d_histograms_folder, INTER_COLORSPACE_DIR
         )
 
         os.makedirs(intra_colorspace_folder, exist_ok=True)
@@ -138,7 +140,13 @@ def process_image(image_filename, csv_filename):
                     )
 
         # Append histogram data to CSV
-        append_histogram_to_csv(image_filename, all_histograms, csv_filename)
+        # Combine 1D and 2D histograms
+        combined_histograms = {
+            **all_histograms,
+            **all_2d_histograms,
+            **all_inter_2d_histograms,
+        }
+        append_histogram_to_csv(image_filename, combined_histograms, csv_filename)
 
         print(f"Processed and saved histograms for {image_filename}")
 

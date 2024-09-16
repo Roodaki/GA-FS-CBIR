@@ -5,7 +5,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from src.constants import HISTOGRAM_BINS, HISTOGRAM_OUTPUT_PATH, COLOR_SPACES
+from src.constants import HISTOGRAM_BINS, HISTOGRAM_2D_BINS
 
 
 def compute_histogram(image, color_space):
@@ -26,12 +26,19 @@ def compute_histogram(image, color_space):
 def compute_2d_histogram(channel1, channel2, color_space1, color_space2):
     """
     Computes a 2D histogram between two channels from potentially different color spaces.
+    Args:
+        channel1 (np.ndarray): First channel image.
+        channel2 (np.ndarray): Second channel image.
+        color_space1 (str): Color space of the first channel.
+        color_space2 (str): Color space of the second channel.
+    Returns:
+        np.ndarray: Flattened 2D histogram.
     """
     hist = cv2.calcHist(
         [channel1, channel2],
         [0, 1],
         None,
-        [HISTOGRAM_BINS, HISTOGRAM_BINS],
+        [HISTOGRAM_2D_BINS, HISTOGRAM_2D_BINS],
         [0, 256, 0, 256],
     )
     hist = hist.flatten()
@@ -87,13 +94,21 @@ def append_histogram_to_csv(image_filename, histograms, csv_filename):
     """
     row = {}
 
-    # Flatten histograms for each color space and channel
+    # Flatten 1D histograms
     for color_space, histograms_dict in histograms.items():
-        for channel_key, histogram in histograms_dict.items():
-            for bin_idx in range(HISTOGRAM_BINS):
-                row[f"{color_space}_Channel_{channel_key}_Bin_{bin_idx}"] = histogram[
-                    bin_idx
-                ]
+        if isinstance(histograms_dict, dict):  # Ensure it's a dictionary
+            for channel_key, histogram in histograms_dict.items():
+                for bin_idx in range(HISTOGRAM_BINS):
+                    row[f"{color_space}_Channel_{channel_key}_Bin_{bin_idx}"] = (
+                        histogram[bin_idx]
+                    )
+
+    # Flatten 2D histograms
+    for key, histogram in histograms.items():
+        if isinstance(histogram, np.ndarray):  # Ensure it's a numpy array
+            if len(histogram.shape) == 1:  # Check if it's a flattened histogram
+                for bin_idx in range(HISTOGRAM_2D_BINS * HISTOGRAM_2D_BINS):
+                    row[f"{key}_Bin_{bin_idx}"] = histogram[bin_idx]
 
     # Convert the row into a DataFrame
     row_df = pd.DataFrame([row])
