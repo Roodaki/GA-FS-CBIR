@@ -84,15 +84,14 @@ def process_image(image_filename, csv_filename):
         all_2d_histograms = {}
         for color_space in COLOR_SPACES.values():
             for channel1 in range(3):
-                for channel2 in range(3):
-                    if channel1 != channel2:  # Skip self-comparison
-                        hist_key = f"{color_space}_Channel_{channel1}_vs_{color_space}_Channel_{channel2}"
-                        channel1_image = color_space_images[color_space][:, :, channel1]
-                        channel2_image = color_space_images[color_space][:, :, channel2]
-                        hist_2d = compute_2d_histogram(
-                            channel1_image, channel2_image, color_space, color_space
-                        )
-                        all_2d_histograms[hist_key] = hist_2d
+                for channel2 in range(channel1 + 1, 3):  # Avoid redundant combinations
+                    hist_key = f"{color_space}_Channel_{channel1}_vs_{color_space}_Channel_{channel2}"
+                    channel1_image = color_space_images[color_space][:, :, channel1]
+                    channel2_image = color_space_images[color_space][:, :, channel2]
+                    hist_2d = compute_2d_histogram(
+                        channel1_image, channel2_image, color_space, color_space
+                    )
+                    all_2d_histograms[hist_key] = hist_2d
 
         # Save intra-color space 2D histograms
         for color_space in COLOR_SPACES.values():
@@ -106,9 +105,9 @@ def process_image(image_filename, csv_filename):
 
         # Compute and save inter-color space 2D histograms
         all_inter_2d_histograms = {}
-        for cs1 in COLOR_SPACES.values():
-            for cs2 in COLOR_SPACES.values():
-                if cs1 != cs2:
+        for cs1_idx, cs1 in enumerate(COLOR_SPACES.values()):
+            for cs2_idx, cs2 in enumerate(COLOR_SPACES.values()):
+                if cs1_idx < cs2_idx:  # Ensure only one combination is calculated
                     for channel1 in range(3):
                         for channel2 in range(3):
                             hist_key = (
@@ -122,9 +121,9 @@ def process_image(image_filename, csv_filename):
                             all_inter_2d_histograms[hist_key] = hist_2d
 
         # Save inter-color space 2D histograms
-        for cs1 in COLOR_SPACES.values():
-            for cs2 in COLOR_SPACES.values():
-                if cs1 != cs2:
+        for cs1_idx, cs1 in enumerate(COLOR_SPACES.values()):
+            for cs2_idx, cs2 in enumerate(COLOR_SPACES.values()):
+                if cs1_idx < cs2_idx:  # Avoid redundancy in inter-color space as well
                     folder_name = f"{cs1}_vs_{cs2}"
                     inter_color_space_folder_path = os.path.join(
                         inter_colorspace_folder, folder_name
