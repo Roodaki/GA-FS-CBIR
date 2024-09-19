@@ -1,13 +1,7 @@
 # src/evaluation.py
 
 import os
-import numpy as np
-from sklearn.metrics import (
-    precision_score,
-    recall_score,
-    f1_score,
-    average_precision_score,
-)
+import csv
 from src.constants import NUM_CLASSES, RETRIEVED_IMAGES_PATH, IMAGE_DATASET_PATH
 
 
@@ -28,75 +22,148 @@ def load_ground_truth_labels():
     return labels
 
 
-def compute_evaluation_metrics(retrieved_images_by_query):
+def calculate_metrics(
+    true_positives, false_positives, relevant_images_count, total_images
+):
     """
-    Compute precision, recall, F1 score, and mean Average Precision (mAP) for the retrieval system.
+    Calculate precision, recall, F1 score, true negatives, and false negatives.
 
     Args:
-        retrieved_images_by_query (dict): A dictionary where keys are query filenames
-                                          and values are lists of retrieved image filenames.
+        true_positives (int): Number of true positive images.
+        false_positives (int): Number of false positive images.
+        relevant_images_count (int): Number of images in the query's class.
+        total_images (int): Total number of images in the dataset.
 
     Returns:
-        dict: A dictionary with precision, recall, F1 score, and mAP.
+        tuple: precision, recall, F1 score, true negatives, false negatives.
     """
-    ground_truth_labels = load_ground_truth_labels()
+    # False Negatives: Correct class images not retrieved
+    false_negatives = relevant_images_count - true_positives
 
-    # Prepare lists for metrics calculation
-    y_true = []
-    y_pred = []
+    # True Negatives: Total images not retrieved and not in the same class
+    true_negatives = total_images - relevant_images_count - false_positives
 
-    # Iterate through each query
-    for query_filename, retrieved_filenames in retrieved_images_by_query.items():
-        query_label = ground_truth_labels[query_filename]
+    precision = (
+        true_positives / (true_positives + false_positives)
+        if (true_positives + false_positives) > 0
+        else 0
+    )
+    recall = true_positives / relevant_images_count if relevant_images_count > 0 else 0
+    f1_score = (
+        (2 * precision * recall) / (precision + recall)
+        if (precision + recall) > 0
+        else 0
+    )
 
-        # Create binary vectors for ground truth and predictions
-        true_labels = [
-            1 if ground_truth_labels.get(img) == query_label else 0
-            for img in retrieved_filenames
-        ]
-        predicted_labels = [1] * len(
-            true_labels
-        )  # Since we assume all retrieved images are positive
-
-        y_true.extend(true_labels)
-        y_pred.extend(predicted_labels)
-
-    # Compute precision, recall, and F1 score
-    precision = precision_score(y_true, y_pred)
-    recall = recall_score(y_true, y_pred)
-    f1 = f1_score(y_true, y_pred)
-
-    # Compute mean Average Precision (mAP)
-    average_precision = average_precision_score(y_true, y_pred)
-
-    return {
-        "precision": precision,
-        "recall": recall,
-        "f1_score": f1,
-        "mean_average_precision": average_precision,
-    }
+    return precision, recall, f1_score, true_negatives, false_negatives
 
 
 def evaluate_all_retrievals():
     """
-    Evaluate retrieval results by calculating precision, recall, F1 score, and mAP.
+    Evaluate retrieval results by calculating precision, recall, F1 score, and output CSV for debugging.
     """
-    retrieved_images_by_query = {}
+    ground_truth_labels = load_ground_truth_labels()
+
+    # Initialize data structures
+    csv_data = []
+    query_metrics = []
+
+    total_images = len(ground_truth_labels)
 
     for folder_name in os.listdir(RETRIEVED_IMAGES_PATH):
         folder_path = os.path.join(RETRIEVED_IMAGES_PATH, folder_name)
 
         if os.path.isdir(folder_path):
             query_filename = f"{folder_name}.jpg"
-            retrieved_filenames = [
-                f for f in os.listdir(folder_path) if f.endswith(".jpg")
-            ]
-            retrieved_images_by_query[query_filename] = retrieved_filenames
+            if query_filename not in ground_truth_labels:
+                continue  # Skip if query filename not in labels
 
-    metrics = compute_evaluation_metrics(retrieved_images_by_query)
+            query_label = ground_truth_labels[query_filename]
+            retrieved_filenames = [
+                f
+                for f in os.listdir(folder_path)
+                if f.endswith(".jpg") and f != query_filename
+            ]
+            num_retrieved = len(retrieved_filenames)
+            relevant_images_count = sum(
+                1
+                for f in ground_truth_labels
+                if ground_truth_labels.get(f) == query_label
+            )
+
+            # True Positives: Correct class images retrieved
+            true_positives = sum(
+                1
+                for f in retrieved_filenames
+                if ground_truth_labels.get(f) == query_label
+            )
+            # False Positives: Incorrect class images retrieved
+            false_positives = num_retrieved - true_positives
+
+            precision, recall, f1, true_negatives, false_negatives = calculate_metrics(
+                true_positives, false_positives, relevant_images_count, total_images
+            )
+
+            # Append metrics for query image
+            query_metrics.append(
+                (
+                    query_filename,
+                    true_positives,
+                    false_positives,
+                    true_negatives,
+                    false_negatives,
+                    precision,
+                    recall,
+                    f1,
+                )
+            )
+
+            # Append data for CSV
+            csv_data.append(
+                [
+                    query_filename,
+                    true_positives,
+                    true_negatives,
+                    false_positives,
+                    false_negatives,
+                    precision,
+                    recall,
+                    f1,
+                ]
+            )
+
+    # Write metrics to CSV
+    csv_file_path = os.path.join(RETRIEVED_IMAGES_PATH, "evaluation_metrics.csv")
+    with open(csv_file_path, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(
+            [
+                "Image",
+                "True Positive",
+                "True Negative",
+                "False Positive",
+                "False Negative",
+                "Precision",
+                "Recall",
+                "F1 Score",
+            ]
+        )
+        writer.writerows(csv_data)
+
+    # Calculate and print average metrics
+    total_precision = total_recall = total_f1 = 0
+    num_queries = len(query_metrics)
+
+    for _, _, _, _, _, precision, recall, f1 in query_metrics:
+        total_precision += precision
+        total_recall += recall
+        total_f1 += f1
+
+    avg_precision = total_precision / num_queries if num_queries > 0 else 0
+    avg_recall = total_recall / num_queries if num_queries > 0 else 0
+    avg_f1 = total_f1 / num_queries if num_queries > 0 else 0
 
     print("Evaluation Metrics:")
-    print(f"Precision: {metrics['precision']:.4f}")
-    print(f"Recall: {metrics['recall']:.4f}")
-    print(f"F1 Score: {metrics['f1_score']:.4f}")
-    print(f"Mean Average Precision (mAP): {metrics['mean_average_precision']:.4f}")
+    print(f"Average Precision: {avg_precision * 100:.2f}%")
+    print(f"Average Recall: {avg_recall * 100:.2f}%")
+    print(f"Average F1 Score: {avg_f1 * 100:.2f}%")
