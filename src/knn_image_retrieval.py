@@ -1,91 +1,120 @@
-# src/knn_image_retrieval.py
-
+import numpy as np
+import pandas as pd
+from scipy.sparse import csr_matrix
+from sklearn.neighbors import NearestNeighbors
 import os
 import shutil
-import pandas as pd
-import numpy as np
-from sklearn.neighbors import NearestNeighbors
-from scipy.spatial.distance import canberra  # Import Canberra distance
 from src.constants import (
-    CSV_FILE_PATH,
     IMAGE_DATASET_PATH,
     RETRIEVED_IMAGES_PATH,
+    CSV_FILE_PATH,
+    IMAGE_FILE_EXTENSION,
     K_NEIGHBORS,
 )
 
 
-def row_index_to_filename(row_index):
+def load_histograms_from_csv(csv_file_path, n_columns=5000):
     """
-    Convert the row index to the corresponding image filename.
+    Loads a subset of image histograms from the CSV file.
 
     Args:
-        row_index (int): Index of the row in the CSV file.
+        csv_file_path (str): Path to the CSV file containing the histograms.
+        n_columns (int): Number of columns to load (e.g., first 5000 columns).
 
     Returns:
-        str: The corresponding image filename (e.g., "0.jpg" for row 2).
+        np.ndarray: Array of histograms with selected columns.
     """
-    image_filename = f"{row_index - 1}.jpg"
-    return image_filename
+    # Load only the first 'n_columns' columns
+    histograms_df = pd.read_csv(
+        csv_file_path, usecols=range(n_columns + 1)
+    )  # +1 to include the header
+    return histograms_df.values  # Convert to numpy array for easier processing
 
 
-def canberra_distance(u, v):
+def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
     """
-    Custom function to calculate the Canberra distance.
+    Retrieves the most similar images based on KNN.
 
     Args:
-        u (np.ndarray): First vector.
-        v (np.ndarray): Second vector.
+        query_histogram (np.ndarray): The histogram of the query image.
+        histograms (np.ndarray): Histograms of all images.
+        k (int): Number of nearest neighbors to retrieve.
 
     Returns:
-        float: Canberra distance between u and v.
+        np.ndarray: Indices of the retrieved images.
     """
-    return canberra(u, v)
+    # Initialize the Nearest Neighbors model
+    knn = NearestNeighbors(n_neighbors=k, metric="euclidean")
+    knn.fit(histograms)
+
+    # Reshape the query histogram to 2D array
+    query_histogram = query_histogram.reshape(1, -1)
+
+    # Find the k-nearest neighbors
+    distances, indices = knn.kneighbors(query_histogram)
+
+    return indices.flatten()  # Return the indices of the nearest images
 
 
-def retrieve_similar_images(
-    input_histogram, num_neighbors=K_NEIGHBORS, distance_metric=canberra_distance
-):
+def process_image_histogram(image_index, histograms):
     """
-    Retrieve the most similar images using KNN based on the input image's histogram.
+    Extracts the histogram for a specific image based on its index in the dataset.
 
     Args:
-        input_histogram (np.ndarray): Histogram of the input image.
-        num_neighbors (int): Number of nearest neighbors to retrieve.
-        distance_metric (callable): Custom distance function, e.g., Canberra distance.
+        image_index (int): Index of the image in the dataset.
+        histograms (np.ndarray): Array of histograms of all images.
 
     Returns:
-        list of str: List of filenames for the retrieved images.
+        np.ndarray: The histogram of the queried image.
     """
-    # Load precomputed histograms from the CSV file
-    histogram_data = pd.read_csv(CSV_FILE_PATH)
-
-    # Extract histogram data (ignoring the first 2 rows)
-    histograms = histogram_data.iloc[1:, :].values
-
-    # Initialize KNN model with a custom metric (Canberra distance)
-    knn_model = NearestNeighbors(n_neighbors=num_neighbors, metric=distance_metric)
-    knn_model.fit(histograms)
-
-    # Find K nearest neighbors
-    distances, indices = knn_model.kneighbors([input_histogram])
-
-    # Map indices to filenames
-    retrieved_filenames = [row_index_to_filename(idx) for idx in indices[0]]
-    return retrieved_filenames
+    return histograms[image_index]  # Return the histogram of the query image
 
 
-def save_retrieved_images(retrieved_image_filenames):
+def retrieve_and_save_images_for_all_dataset():
     """
-    Save the retrieved images in a separate folder for visualization.
+    Process each image in the dataset, retrieve similar images, and save them.
+    """
+    # Ensure the main output directory exists
+    os.makedirs(RETRIEVED_IMAGES_PATH, exist_ok=True)
+
+    # Load histograms from the CSV file
+    histograms = load_histograms_from_csv(CSV_FILE_PATH)
+    print("csv file loaded.")
+
+    # Iterate over all images in the dataset
+    for i in range(histograms.shape[0]):
+        # Retrieve similar images for the current image
+        query_histogram = process_image_histogram(i, histograms)
+        retrieved_indices = retrieve_similar_images(query_histogram, histograms)
+
+        # Retrieve corresponding image filenames
+        image_filenames = [
+            f"{index}{IMAGE_FILE_EXTENSION}" for index in retrieved_indices
+        ]
+
+        # Create a folder to save the retrieved images
+        retrieval_folder = os.path.join(RETRIEVED_IMAGES_PATH, str(i))
+        os.makedirs(retrieval_folder, exist_ok=True)
+
+        # Save the retrieved images in the folder
+        save_retrieved_images(image_filenames, retrieval_folder)
+
+        print(f"Retrieved images for image {i} saved in '{retrieval_folder}'")
+
+
+def save_retrieved_images(retrieved_image_filenames, output_folder):
+    """
+    Save the retrieved images in the specified folder.
 
     Args:
         retrieved_image_filenames (list): List of filenames of the retrieved images.
+        output_folder (str): Directory to save the retrieved images.
     """
-    os.makedirs(RETRIEVED_IMAGES_PATH, exist_ok=True)
-
     for image_filename in retrieved_image_filenames:
         source_path = os.path.join(IMAGE_DATASET_PATH, image_filename)
-        destination_path = os.path.join(RETRIEVED_IMAGES_PATH, image_filename)
-        shutil.copyfile(source_path, destination_path)
+        destination_path = os.path.join(output_folder, image_filename)
 
-    print(f"Saved {len(retrieved_image_filenames)} images in '{RETRIEVED_IMAGES_PATH}'")
+        if os.path.exists(source_path):
+            shutil.copyfile(source_path, destination_path)
+        else:
+            print(f"Source image '{source_path}' not found. Skipping.")
