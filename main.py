@@ -12,4 +12,4 @@ if __name__ == "__main__":
     retrieve_and_save_images_for_all_dataset()
 
     # Evaluate the retrieval performance
-    # evaluate_all_retrievals()
+    evaluate_all_retrievals()

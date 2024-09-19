@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import KNeighborsClassifier
 import os
 import shutil
 from src.constants import (
@@ -44,8 +44,14 @@ def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
         np.ndarray: Indices of the retrieved images.
     """
     # Initialize the Nearest Neighbors model
-    knn = NearestNeighbors(n_neighbors=k, metric="euclidean")
-    knn.fit(histograms)
+    knn = KNeighborsClassifier(
+        n_neighbors=k,
+        metric="canberra",  # Using Canberra distance
+        weights="distance",  # Weight neighbors by their distance
+        algorithm="kd_tree",  # Or 'auto' for the best choice
+        leaf_size=30,  # Adjust leaf_size as necessary
+    )
+    knn.fit(histograms, np.arange(histograms.shape[0]))
 
     # Reshape the query histogram to 2D array
     query_histogram = query_histogram.reshape(1, -1)
