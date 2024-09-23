@@ -1,5 +1,10 @@
 import os
-from utils.image_utils import read_and_resize_image, convert_image_to_color_spaces
+import re
+from utils.image_utils import (
+    read_and_resize_image,
+    convert_image_to_color_spaces,
+    natural_sort_key,
+)
 from utils.histogram_utils import (
     compute_histogram,
     compute_2d_histogram,
@@ -161,6 +166,9 @@ def process_all_images():
     image_filenames = [
         f for f in os.listdir(IMAGE_DATASET_PATH) if f.endswith(IMAGE_FILE_EXTENSION)
     ]
+
+    # Sort the filenames in natural order
+    image_filenames.sort(key=natural_sort_key)
 
     # CSV filename where all image histograms will be saved
     csv_filename = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)

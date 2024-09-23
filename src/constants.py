@@ -15,9 +15,9 @@ CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 IMAGE_FILE_EXTENSION = ".jpg"
 
 # Image processing constants
-IMAGE_SIZE = (256, 256)  # Resize images to this size for faster processing
-HISTOGRAM_BINS = 256  # Number of bins for 1D histograms
-HISTOGRAM_2D_BINS = 256  # Number of bins for 2D histograms
+IMAGE_SIZE = (8, 8)  # Resize images to this size for faster processing
+HISTOGRAM_BINS = 8  # Number of bins for 1D histograms
+HISTOGRAM_2D_BINS = 8  # Number of bins for 2D histograms
 
 # Color spaces
 COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}

@@ -13,21 +13,18 @@ from src.constants import (
 )
 
 
-def load_histograms_from_csv(csv_file_path, n_columns=5000):
+def load_histograms_from_csv(csv_file_path):
     """
-    Loads a subset of image histograms from the CSV file.
+    Loads all image histograms from the CSV file, skipping the header.
 
     Args:
         csv_file_path (str): Path to the CSV file containing the histograms.
-        n_columns (int): Number of columns to load (e.g., first 5000 columns).
 
     Returns:
-        np.ndarray: Array of histograms with selected columns.
+        np.ndarray: Array of histograms with all columns, excluding the header.
     """
-    # Load only the first 'n_columns' columns
-    histograms_df = pd.read_csv(
-        csv_file_path, usecols=range(n_columns + 1)
-    )  # +1 to include the header
+    # Load all columns and skip the header row
+    histograms_df = pd.read_csv(csv_file_path, header=0)
     return histograms_df.values  # Convert to numpy array for easier processing
 
 

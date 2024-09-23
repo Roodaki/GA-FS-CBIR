@@ -6,10 +6,10 @@ from src.evaluation import evaluate_all_retrievals
 
 if __name__ == "__main__":
     # Process all images to compute histograms
-    # process_all_images()
+    process_all_images()
 
     # Retrieve and save images for each image in the dataset
-    # retrieve_and_save_images_for_all_dataset()
+    retrieve_and_save_images_for_all_dataset()
 
     # Evaluate the retrieval performance
     evaluate_all_retrievals()

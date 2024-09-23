@@ -1,6 +1,8 @@
 # utils/image_utils.py
 
 import cv2
+import os
+import re
 from src.constants import IMAGE_SIZE, COLOR_SPACES
 
 
@@ -24,3 +26,19 @@ def convert_image_to_color_spaces(image):
     color_space_images[COLOR_SPACES["HSV"]] = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     color_space_images[COLOR_SPACES["LAB"]] = cv2.cvtColor(image, cv2.COLOR_BGR2Lab)
     return color_space_images
+
+
+def natural_sort_key(filename):
+    """
+    Returns a sort key for natural sorting.
+
+    Args:
+        filename (str): Filename to extract the numeric part for sorting.
+
+    Returns:
+        A tuple that can be used to sort filenames in natural order.
+    """
+    base = os.path.splitext(filename)[0]  # Remove extension
+    return [
+        int(part) if part.isdigit() else part for part in re.split("([0-9]+)", base)
+    ]
