@@ -2,7 +2,8 @@
 
 import os
 import csv
-from src.constants import NUM_CLASSES, RETRIEVED_IMAGES_PATH, IMAGE_DATASET_PATH
+from src.constants import NUM_CLASSES, RETRIEVED_IMAGES_PATH
+from utils.image_utils import natural_sort_key
 
 
 def load_ground_truth_labels():
@@ -70,7 +71,10 @@ def evaluate_all_retrievals():
 
     total_images = len(ground_truth_labels)
 
-    for folder_name in os.listdir(RETRIEVED_IMAGES_PATH):
+    # Ensure folders are sorted naturally
+    folder_names = sorted(os.listdir(RETRIEVED_IMAGES_PATH), key=natural_sort_key)
+
+    for folder_name in folder_names:
         folder_path = os.path.join(RETRIEVED_IMAGES_PATH, folder_name)
 
         if os.path.isdir(folder_path):
