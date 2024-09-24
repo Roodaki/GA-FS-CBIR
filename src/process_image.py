@@ -1,4 +1,5 @@
 import os
+import cv2
 import re
 from utils.image_utils import (
     read_and_resize_image,
@@ -8,6 +9,7 @@ from utils.image_utils import (
 from utils.histogram_utils import (
     compute_histogram,
     compute_2d_histogram,
+    compute_lbp_histogram,
     plot_and_save_histograms,
     plot_and_save_2d_histograms,
     append_histogram_to_csv,
@@ -35,30 +37,31 @@ def process_image(image_filename, csv_filename):
         csv_filename (str): Path to the CSV file to append histogram data.
     """
     try:
+        # Read the image and convert to different color spaces
         image_path = os.path.join(IMAGE_DATASET_PATH, image_filename)
         image = read_and_resize_image(image_path)
         color_space_images = convert_image_to_color_spaces(image)
 
-        # Create directories for saving histograms
+        # Create directory for saving histograms based on the image filename
         image_folder = os.path.join(
             HISTOGRAM_OUTPUT_PATH, os.path.splitext(image_filename)[0]
         )
         os.makedirs(image_folder, exist_ok=True)
 
-        # Directories for 1D and 2D histograms
+        # Create directories for 1D and 2D histograms
         one_d_histograms_folder = os.path.join(image_folder, ONE_D_HISTOGRAMS_DIR)
         two_d_histograms_folder = os.path.join(image_folder, TWO_D_HISTOGRAMS_DIR)
 
         os.makedirs(one_d_histograms_folder, exist_ok=True)
         os.makedirs(two_d_histograms_folder, exist_ok=True)
 
-        # 1D Histogram Folders
+        # Create folders for color spaces within 1D histogram folder
         for color_space in COLOR_SPACES.values():
             os.makedirs(
                 os.path.join(one_d_histograms_folder, color_space), exist_ok=True
             )
 
-        # 2D Histogram Folders
+        # Create folders for intra and inter color space 2D histograms
         intra_colorspace_folder = os.path.join(
             two_d_histograms_folder, INTRA_COLORSPACE_DIR
         )
@@ -84,6 +87,19 @@ def process_image(image_filename, csv_filename):
             plot_and_save_histograms(
                 histograms, os.path.join(one_d_histograms_folder, color_space)
             )
+
+        # Compute LBP histogram and save to the 1D histograms folder
+        grayscale_image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        lbp_histogram = compute_lbp_histogram(grayscale_image)
+
+        # Save LBP histogram as an image
+        lbp_histograms = {"LBP_Histogram": lbp_histogram}
+        lbp_folder = os.path.join(one_d_histograms_folder, "LBP")
+        os.makedirs(lbp_folder, exist_ok=True)
+        plot_and_save_histograms(lbp_histograms, lbp_folder)
+
+        # Include LBP histogram in the combined_histograms dictionary
+        all_histograms["LBP_Histogram"] = lbp_histogram
 
         # Compute and save 2D histograms (intra-color space)
         all_2d_histograms = {}
@@ -144,13 +160,14 @@ def process_image(image_filename, csv_filename):
                         inter_color_space_folder_path,
                     )
 
-        # Append histogram data to CSV
-        # Combine 1D and 2D histograms
+        # Combine histograms
         combined_histograms = {
             **all_histograms,
             **all_2d_histograms,
             **all_inter_2d_histograms,
         }
+
+        # Append histogram data to CSV
         append_histogram_to_csv(image_filename, combined_histograms, csv_filename)
 
         print(f"Processed and saved histograms for {image_filename}")

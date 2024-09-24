@@ -19,6 +19,11 @@ IMAGE_SIZE = (8, 8)  # Resize images to this size for faster processing
 HISTOGRAM_BINS = 8  # Number of bins for 1D histograms
 HISTOGRAM_2D_BINS = 8  # Number of bins for 2D histograms
 
+# LBP settings
+LBP_RADIUS = 1  # Radius for LBP calculation
+LBP_POINTS = 8 * LBP_RADIUS  # Points around the radius for LBP
+LBP_BINS = 2**LBP_POINTS  # Number of bins for LBP histograms
+
 # Color spaces
 COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}
 

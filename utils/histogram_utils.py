@@ -5,7 +5,14 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from src.constants import HISTOGRAM_BINS, HISTOGRAM_2D_BINS
+from skimage.feature import local_binary_pattern  # Import LBP function from skimage
+from src.constants import (
+    HISTOGRAM_BINS,
+    HISTOGRAM_2D_BINS,
+    LBP_POINTS,
+    LBP_RADIUS,
+    LBP_BINS,
+)
 
 
 def compute_histogram(image, color_space):
@@ -43,6 +50,21 @@ def compute_2d_histogram(channel1, channel2, color_space1, color_space2):
     )
     hist = hist.flatten()
     return hist
+
+
+def compute_lbp_histogram(image):
+    """
+    Computes the Local Binary Pattern (LBP) histogram of the image.
+
+    Args:
+        image (np.ndarray): Grayscale image to compute LBP on.
+
+    Returns:
+        np.ndarray: LBP histogram with specified number of bins.
+    """
+    lbp_image = local_binary_pattern(image, LBP_POINTS, LBP_RADIUS, method="uniform")
+    lbp_histogram, _ = np.histogram(lbp_image, bins=LBP_BINS, range=(0, LBP_BINS))
+    return lbp_histogram
 
 
 def plot_and_save_histograms(histograms, output_folder):
