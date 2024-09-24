@@ -15,17 +15,23 @@ from src.constants import (
 
 def load_histograms_from_csv(csv_file_path):
     """
-    Loads all image histograms from the CSV file, skipping the header.
+    Loads all image histograms from the CSV file, skipping the header,
+    and removes columns that consist only of zeros.
 
     Args:
         csv_file_path (str): Path to the CSV file containing the histograms.
 
     Returns:
-        np.ndarray: Array of histograms with all columns, excluding the header.
+        np.ndarray: Array of histograms with non-zero columns only.
     """
-    # Load all columns and skip the header row
+    # Load the CSV file into a pandas DataFrame
     histograms_df = pd.read_csv(csv_file_path, header=0)
-    return histograms_df.values  # Convert to numpy array for easier processing
+
+    # Remove columns that are all zeros
+    non_zero_columns_df = histograms_df.loc[:, (histograms_df != 0).any(axis=0)]
+
+    # Convert the DataFrame to a numpy array for easier processing
+    return non_zero_columns_df.values
 
 
 def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
