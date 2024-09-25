@@ -62,8 +62,12 @@ def compute_lbp_histogram(image):
     Returns:
         np.ndarray: LBP histogram with specified number of bins.
     """
-    lbp_image = local_binary_pattern(image, LBP_POINTS, LBP_RADIUS, method="uniform")
+    # Compute LBP using the 'default' method
+    lbp_image = local_binary_pattern(image, LBP_POINTS, LBP_RADIUS, method="default")
+
+    # Create a histogram of the LBP image
     lbp_histogram, _ = np.histogram(lbp_image, bins=LBP_BINS, range=(0, LBP_BINS))
+
     return lbp_histogram
 
 
