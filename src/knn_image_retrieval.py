@@ -10,6 +10,7 @@ from src.constants import (
     CSV_FILE_PATH,
     IMAGE_FILE_EXTENSION,
     K_NEIGHBORS,
+    LEAF_SIZE,
 )
 
 
@@ -52,7 +53,7 @@ def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
         metric="canberra",  # Using Canberra distance
         weights="distance",  # Weight neighbors by their distance
         algorithm="ball_tree",  # Or 'auto' for the best choice
-        leaf_size=30,  # Adjust leaf_size as necessary
+        leaf_size=LEAF_SIZE,  # Adjust leaf_size as necessary
     )
     knn.fit(histograms, np.arange(histograms.shape[0]))
 
