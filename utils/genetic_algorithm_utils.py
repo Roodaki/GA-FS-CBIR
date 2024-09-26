@@ -56,7 +56,7 @@ def evaluate_individual(individual, histograms, target_labels):
         target_labels (dict): Ground truth labels for the images.
 
     Returns:
-        tuple: A tuple containing the weighted fitness value and precision.
+        tuple: A tuple containing the weighted fitness value and average precision.
     """
     selected_features = [
         index for index, feature in enumerate(individual) if feature == 1
@@ -72,11 +72,11 @@ def evaluate_individual(individual, histograms, target_labels):
     # Filter histograms based on the selected features
     reduced_histograms = histograms[:, selected_features]
 
-    # Evaluate precision using KNN-based image retrieval
-    true_positives, false_positives = 0, 0
-    total_relevant_images = 0
+    # Initialize precision accumulation variables
+    total_precision = 0.0
     total_images = len(target_labels)
 
+    # Evaluate precision for each query image
     for i in range(total_images):
         query_histogram = reduced_histograms[i]
         retrieved_indices = retrieve_similar_images(query_histogram, reduced_histograms)
@@ -96,17 +96,21 @@ def evaluate_individual(individual, histograms, target_labels):
 
         # True Positives: Correct class images retrieved
         tp = sum(1 for f in retrieved_filenames if target_labels.get(f) == query_label)
-        true_positives += tp
+        true_positives = tp
 
         # False Positives: Incorrect class images retrieved
-        fp = len(retrieved_filenames) - tp
-        false_positives += fp
+        false_positives = len(retrieved_filenames) - tp
 
-        total_relevant_images += relevant_images_count
+        # Calculate precision for this image
+        precision, _, _, _, _ = calculate_metrics(
+            true_positives, false_positives, relevant_images_count, total_images
+        )
 
-    precision, _, _, _, _ = calculate_metrics(
-        true_positives, false_positives, total_relevant_images, total_images
-    )
+        # Accumulate precision across all query images
+        total_precision += precision
+
+    # Compute the average precision across all images
+    avg_precision = total_precision / total_images
 
     # Calculate the weighted fitness
     feature_count = len(selected_features)
@@ -116,12 +120,12 @@ def evaluate_individual(individual, histograms, target_labels):
     feature_ratio = feature_count / max_possible_features
 
     # Weighted sum of precision and the feature count (inverted because fewer features is better)
-    fitness_value = (GA_PRECISION_WEIGHT * precision) - (
+    fitness_value = (GA_PRECISION_WEIGHT * avg_precision) - (
         (1 - GA_PRECISION_WEIGHT) * feature_ratio
     )
 
-    # Return fitness value as a tuple (weighted fitness, precision)
-    return (fitness_value, precision)
+    # Return fitness value as a tuple (weighted fitness, average precision)
+    return (fitness_value, avg_precision)
 
 
 def run_genetic_algorithm():
