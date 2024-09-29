@@ -41,11 +41,11 @@ INTRA_COLORSPACE_DIR = "intra_colorspace"
 INTER_COLORSPACE_DIR = "inter_colorspace"
 
 # Genetic Algorithm Constants
-GA_POPULATION_SIZE = 30  # Number of individuals in each generation
-GA_NUMBER_OF_GENERATIONS = 50  # Number of generations to evolve
-GA_CROSSOVER_PROBABILITY = 0.5  # Probability of crossover between individuals
+GA_POPULATION_SIZE = 50  # Number of individuals in each generation
+GA_NUMBER_OF_GENERATIONS = 100  # Number of generations to evolve
+GA_CROSSOVER_PROBABILITY = 0.8  # Probability of crossover between individuals
 GA_MUTATION_PROBABILITY = 0.2  # Probability of mutation in individuals
 GA_MUTATION_INDEPENDENCE_PROBABILITY = 0.05  # Probability for each gene to mutate
-GA_PRECISION_WEIGHT = 0.7  # Higher value prioritizes precision; lower value prioritizes minimizing features
+GA_PRECISION_WEIGHT = 0.5  # Higher value prioritizes precision; lower value prioritizes minimizing features
 TOURNAMENT_SIZE = 3  # Tournament size for selection
-CROSSOVER_INDP_PROBABILITY = 0.5  # Probability for independent crossover per gene
+CROSSOVER_INDP_PROBABILITY = 0.6  # Probability for independent crossover per gene

@@ -160,17 +160,19 @@ def run_genetic_algorithm():
                 fitness  # fitness should be a tuple with two values
             )
 
-        # Print details for each individual in this generation
+        # Print details for each individual in this generation, sorted by fitness value
         print(f"Generation {generation}:")
-        for i, individual in enumerate(population):
+        sorted_population = sorted(
+            population, key=lambda ind: ind.fitness.values[0], reverse=True
+        )
+        for i, individual in enumerate(sorted_population):
             # Count the number of selected features
             num_selected_features = sum(individual)
-            weighted_fitness = individual.fitness.values[0]
-            precision = individual.fitness.values[1]
+            avg_precision = individual.fitness.values[1]
             print(
-                f"  Individual {i + 1}: Selected Features = {num_selected_features}, "
-                f"Weighted Fitness = {weighted_fitness:.4f}, Precision = {precision:.4f}"
+                f"\tIndividual {i + 1}:\tSelected Features = {num_selected_features}\tAverage Precision = {avg_precision:.4f}"
             )
+
         # Select the next generation individuals
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
@@ -197,13 +199,22 @@ def run_genetic_algorithm():
         if valid_fitness:  # Ensure there are valid fitness values to consider
             best_fitness = max(valid_fitness)
             print(
-                f"  Generation {generation}: Best Weighted Fitness = {best_fitness:.4f}\n"
+                f"\tGeneration {generation}:\tBest Weighted Fitness = {best_fitness:.4f}\n"
             )
         else:
-            print(f"  Generation {generation}: No valid fitness values.\n")
+            print(f"\tGeneration {generation}:\tNo valid fitness values.\n")
 
     # Return the best individual after all generations
     best_individual = tools.selBest(population, 1)[0]
+    selected_features_indices = [
+        i for i, feature in enumerate(best_individual) if feature == 1
+    ]
+    num_selected_features = len(selected_features_indices)
+    final_avg_precision = best_individual.fitness.values[1]
+
     print(
-        f"Best Individual: {best_individual}, Fitness: {best_individual.fitness.values}"
+        f"Best Individual: {best_individual}, Fitness: {best_individual.fitness.values}\n"
+        f"\tNumber of Selected Features: {num_selected_features}\n"
+        f"\tIndices of Selected Features: {selected_features_indices}\n"
+        f"\tFinal Average Precision: {final_avg_precision:.4f}"
     )
