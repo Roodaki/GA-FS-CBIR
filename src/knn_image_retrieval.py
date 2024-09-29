@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
+from sklearn.preprocessing import PowerTransformer  # Importing PowerTransformer
 from sklearn.neighbors import KNeighborsClassifier
 import os
 import shutil
@@ -14,16 +14,19 @@ from src.constants import (
 )
 
 
-def load_histograms_from_csv(csv_file_path):
+def load_histograms_from_csv(csv_file_path, method="yeo-johnson", standardize=True):
     """
     Loads all image histograms from the CSV file, skipping the header,
-    and removes columns that consist only of zeros.
+    and removes columns that consist only of zeros. Applies Power Transform
+    to the remaining columns.
 
     Args:
         csv_file_path (str): Path to the CSV file containing the histograms.
+        method (str): The method used for power transformation ('box-cox' or 'yeo-johnson').
+        standardize (bool): Whether to standardize the transformed data.
 
     Returns:
-        np.ndarray: Array of histograms with non-zero columns only.
+        np.ndarray: Array of transformed histograms with non-zero columns only.
     """
     # Load the CSV file into a pandas DataFrame
     histograms_df = pd.read_csv(csv_file_path, header=0)
@@ -31,8 +34,14 @@ def load_histograms_from_csv(csv_file_path):
     # Remove columns that are all zeros
     non_zero_columns_df = histograms_df.loc[:, (histograms_df != 0).any(axis=0)]
 
-    # Convert the DataFrame to a numpy array for easier processing
-    return non_zero_columns_df.values
+    # Instantiate the Power Transformer with specified parameters
+    power_transformer = PowerTransformer(method=method, standardize=standardize)
+
+    # Fit the transformer and transform the data
+    transformed_data = power_transformer.fit_transform(non_zero_columns_df)
+
+    # Return the transformed data as a numpy array
+    return transformed_data
 
 
 def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
