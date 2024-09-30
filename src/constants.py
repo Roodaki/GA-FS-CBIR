@@ -25,7 +25,16 @@ LBP_POINTS = 8 * LBP_RADIUS  # Points around the radius for LBP
 LBP_BINS = 2**LBP_POINTS  # Number of bins for LBP histograms
 
 # Color spaces
-COLOR_SPACES = {"RGB": "RGB", "HSV": "HSV", "LAB": "LAB"}
+COLOR_SPACES = {
+    "BGR": "BGR",
+    "RGB": "RGB",
+    "HSV": "HSV",
+    "HLS": "HLS",
+    "LAB": "LAB",
+    "YUV": "YUV",
+    "YCrCb": "YCrCb",
+    "XYZ": "XYZ",
+}
 
 # KNN retrieval constants
 K_NEIGHBORS = 10  # Number of images to retrieve
