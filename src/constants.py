@@ -45,6 +45,7 @@ LEAF_SIZE = 30  # Leaf size for KNN (used in image retrieval)
 
 # Evaluation metrics constants
 NUM_CLASSES = 10  # Number of classes in the dataset (0-999 with 100 per class)
+NUM_IMAGES_PER_CLASS = 100  # Define number of images per class
 
 # Directories
 ONE_D_HISTOGRAMS_DIR = "1d_histograms"

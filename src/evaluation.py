@@ -2,11 +2,17 @@
 
 import os
 import csv
-from src.constants import NUM_CLASSES, RETRIEVED_IMAGES_PATH
+import logging
+from src.constants import NUM_CLASSES, NUM_IMAGES_PER_CLASS, RETRIEVED_IMAGES_PATH
 from utils.image_utils import natural_sort_key
 
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
-def load_ground_truth_labels():
+
+def load_ground_truth_labels() -> dict:
     """
     Loads the ground truth labels for the images based on their filenames.
 
@@ -15,17 +21,18 @@ def load_ground_truth_labels():
     """
     labels = {}
     for i in range(NUM_CLASSES):
-        class_start = i * 100
-        class_end = class_start + 100
-        for j in range(class_start, class_end):
-            filename = f"{j}.jpg"
+        for j in range(NUM_IMAGES_PER_CLASS):
+            filename = f"{i * NUM_IMAGES_PER_CLASS + j}.jpg"
             labels[filename] = i
     return labels
 
 
 def calculate_metrics(
-    true_positives, false_positives, relevant_images_count, total_images
-):
+    true_positives: int,
+    false_positives: int,
+    relevant_images_count: int,
+    total_images: int,
+) -> tuple:
     """
     Calculate precision, recall, F1 score, true negatives, and false negatives.
 
@@ -42,14 +49,21 @@ def calculate_metrics(
     false_negatives = relevant_images_count - true_positives
 
     # True Negatives: Total images not retrieved and not in the same class
-    true_negatives = total_images - relevant_images_count - false_positives
+    true_negatives = (
+        total_images - relevant_images_count - false_positives - false_negatives
+    )
 
+    # Precision: Relevant retrieved / Total retrieved
     precision = (
         true_positives / (true_positives + false_positives)
         if (true_positives + false_positives) > 0
         else 0
     )
+
+    # Recall: Relevant retrieved / Total relevant in class
     recall = true_positives / relevant_images_count if relevant_images_count > 0 else 0
+
+    # F1 Score: Harmonic mean of precision and recall
     f1_score = (
         (2 * precision * recall) / (precision + recall)
         if (precision + recall) > 0
@@ -59,7 +73,9 @@ def calculate_metrics(
     return precision, recall, f1_score, true_negatives, false_negatives
 
 
-def calculate_average_precision(rank_csv_path, query_label, ground_truth_labels):
+def calculate_average_precision(
+    rank_csv_path: str, query_label: int, ground_truth_labels: dict
+) -> float:
     """
     Calculate Average Precision (AP) for a single query based on rank.csv.
 
@@ -72,22 +88,27 @@ def calculate_average_precision(rank_csv_path, query_label, ground_truth_labels)
         float: Average Precision (AP) for the query.
     """
     true_positives = 0
-    relevant_count = 0
+    relevant_precision_sum = 0
     total_retrieved = 0
 
     # Read the rank.csv file to get the retrieval results
-    with open(rank_csv_path, "r") as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            total_retrieved += 1
-            retrieved_filename = row["Retrieved Image Filename"]
-            if ground_truth_labels.get(retrieved_filename) == query_label:
-                true_positives += 1
-                relevant_count += (
-                    true_positives / total_retrieved
-                )  # Precision at this rank
+    try:
+        with open(rank_csv_path, "r") as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                total_retrieved += 1
+                retrieved_filename = row["Retrieved Image Filename"]
+                if ground_truth_labels.get(retrieved_filename) == query_label:
+                    true_positives += 1
+                    relevant_precision_sum += (
+                        true_positives / total_retrieved
+                    )  # Precision at this rank
+    except FileNotFoundError:
+        logging.error(f"File {rank_csv_path} not found.")
+        return 0.0
 
-    ap = relevant_count / true_positives if true_positives > 0 else 0
+    # Calculate average precision
+    ap = relevant_precision_sum / true_positives if true_positives > 0 else 0
     return ap
 
 
@@ -96,15 +117,11 @@ def evaluate_all_retrievals():
     Evaluate retrieval results by calculating precision, recall, F1 score, and output CSV for debugging.
     """
     ground_truth_labels = load_ground_truth_labels()
-
-    # Initialize data structures
     csv_data = []
     query_metrics = []
     average_precisions = []
-
     total_images = len(ground_truth_labels)
 
-    # Ensure folders are sorted naturally
     folder_names = sorted(os.listdir(RETRIEVED_IMAGES_PATH), key=natural_sort_key)
 
     for folder_name in folder_names:
@@ -116,11 +133,7 @@ def evaluate_all_retrievals():
                 continue  # Skip if query filename not in labels
 
             query_label = ground_truth_labels[query_filename]
-
-            # Path to rank.csv for this query
             rank_csv_path = os.path.join(folder_path, "rank.csv")
-
-            # Calculate Average Precision using rank.csv
             ap = calculate_average_precision(
                 rank_csv_path, query_label, ground_truth_labels
             )
@@ -138,20 +151,17 @@ def evaluate_all_retrievals():
                 if ground_truth_labels.get(f) == query_label
             )
 
-            # True Positives: Correct class images retrieved
             true_positives = sum(
                 1
                 for f in retrieved_filenames
                 if ground_truth_labels.get(f) == query_label
             )
-            # False Positives: Incorrect class images retrieved
             false_positives = num_retrieved - true_positives
 
             precision, recall, f1, true_negatives, false_negatives = calculate_metrics(
                 true_positives, false_positives, relevant_images_count, total_images
             )
 
-            # Append metrics for query image
             query_metrics.append(
                 (
                     query_filename,
@@ -162,11 +172,10 @@ def evaluate_all_retrievals():
                     precision,
                     recall,
                     f1,
-                    ap,  # Add AP to metrics
+                    ap,
                 )
             )
 
-            # Append data for CSV
             csv_data.append(
                 [
                     query_filename,
@@ -177,11 +186,11 @@ def evaluate_all_retrievals():
                     precision,
                     recall,
                     f1,
-                    ap,  # Add AP to CSV data
+                    ap,
                 ]
             )
 
-    # Write metrics to CSV
+    # Write the metrics to CSV
     csv_file_path = os.path.join(RETRIEVED_IMAGES_PATH, "evaluation_metrics.csv")
     with open(csv_file_path, "w", newline="") as csvfile:
         writer = csv.writer(csvfile)
@@ -195,7 +204,7 @@ def evaluate_all_retrievals():
                 "Precision",
                 "Recall",
                 "F1 Score",
-                "Average Precision",  # Add AP column to header
+                "Average Precision",
             ]
         )
         writer.writerows(csv_data)
@@ -208,15 +217,15 @@ def evaluate_all_retrievals():
         total_precision += precision
         total_recall += recall
         total_f1 += f1
-        total_ap += ap  # Accumulate AP for mAP calculation
+        total_ap += ap
 
     mean_precision = total_precision / num_queries if num_queries > 0 else 0
     mean_recall = total_recall / num_queries if num_queries > 0 else 0
     mean_f1 = total_f1 / num_queries if num_queries > 0 else 0
-    mean_ap = total_ap / num_queries if num_queries > 0 else 0  # Calculate mAP
+    mean_ap = total_ap / num_queries if num_queries > 0 else 0
 
-    print("Evaluation Metrics:")
-    print(f"Mean Precision: {mean_precision * 100:.2f}%")
-    print(f"Mean Recall: {mean_recall * 100:.2f}%")
-    print(f"Mean F1 Score: {mean_f1 * 100:.2f}%")
-    print(f"Mean Average Precision (mAP): {mean_ap * 100:.2f}%")  # Print mAP
+    logging.info("Evaluation Metrics:")
+    logging.info(f"Mean Precision: {mean_precision * 100:.2f}%")
+    logging.info(f"Mean Recall: {mean_recall * 100:.2f}%")
+    logging.info(f"Mean F1 Score: {mean_f1 * 100:.2f}%")
+    logging.info(f"Mean Average Precision (mAP): {mean_ap * 100:.2f}%")
