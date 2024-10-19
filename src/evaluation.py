@@ -59,6 +59,38 @@ def calculate_metrics(
     return precision, recall, f1_score, true_negatives, false_negatives
 
 
+def calculate_average_precision(rank_csv_path, query_label, ground_truth_labels):
+    """
+    Calculate Average Precision (AP) for a single query based on rank.csv.
+
+    Args:
+        rank_csv_path (str): Path to the rank.csv file.
+        query_label (int): The true label for the query image.
+        ground_truth_labels (dict): Mapping of image filenames to their class labels.
+
+    Returns:
+        float: Average Precision (AP) for the query.
+    """
+    true_positives = 0
+    relevant_count = 0
+    total_retrieved = 0
+
+    # Read the rank.csv file to get the retrieval results
+    with open(rank_csv_path, "r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            total_retrieved += 1
+            retrieved_filename = row["Retrieved Image Filename"]
+            if ground_truth_labels.get(retrieved_filename) == query_label:
+                true_positives += 1
+                relevant_count += (
+                    true_positives / total_retrieved
+                )  # Precision at this rank
+
+    ap = relevant_count / true_positives if true_positives > 0 else 0
+    return ap
+
+
 def evaluate_all_retrievals():
     """
     Evaluate retrieval results by calculating precision, recall, F1 score, and output CSV for debugging.
@@ -68,6 +100,7 @@ def evaluate_all_retrievals():
     # Initialize data structures
     csv_data = []
     query_metrics = []
+    average_precisions = []
 
     total_images = len(ground_truth_labels)
 
@@ -83,6 +116,16 @@ def evaluate_all_retrievals():
                 continue  # Skip if query filename not in labels
 
             query_label = ground_truth_labels[query_filename]
+
+            # Path to rank.csv for this query
+            rank_csv_path = os.path.join(folder_path, "rank.csv")
+
+            # Calculate Average Precision using rank.csv
+            ap = calculate_average_precision(
+                rank_csv_path, query_label, ground_truth_labels
+            )
+            average_precisions.append(ap)
+
             retrieved_filenames = [
                 f
                 for f in os.listdir(folder_path)
@@ -119,6 +162,7 @@ def evaluate_all_retrievals():
                     precision,
                     recall,
                     f1,
+                    ap,  # Add AP to metrics
                 )
             )
 
@@ -133,6 +177,7 @@ def evaluate_all_retrievals():
                     precision,
                     recall,
                     f1,
+                    ap,  # Add AP to CSV data
                 ]
             )
 
@@ -150,24 +195,28 @@ def evaluate_all_retrievals():
                 "Precision",
                 "Recall",
                 "F1 Score",
+                "Average Precision",  # Add AP column to header
             ]
         )
         writer.writerows(csv_data)
 
-    # Calculate and print average metrics
-    total_precision = total_recall = total_f1 = 0
+    # Calculate and print mean metrics
+    total_precision = total_recall = total_f1 = total_ap = 0
     num_queries = len(query_metrics)
 
-    for _, _, _, _, _, precision, recall, f1 in query_metrics:
+    for _, _, _, _, _, precision, recall, f1, ap in query_metrics:
         total_precision += precision
         total_recall += recall
         total_f1 += f1
+        total_ap += ap  # Accumulate AP for mAP calculation
 
-    avg_precision = total_precision / num_queries if num_queries > 0 else 0
-    avg_recall = total_recall / num_queries if num_queries > 0 else 0
-    avg_f1 = total_f1 / num_queries if num_queries > 0 else 0
+    mean_precision = total_precision / num_queries if num_queries > 0 else 0
+    mean_recall = total_recall / num_queries if num_queries > 0 else 0
+    mean_f1 = total_f1 / num_queries if num_queries > 0 else 0
+    mean_ap = total_ap / num_queries if num_queries > 0 else 0  # Calculate mAP
 
     print("Evaluation Metrics:")
-    print(f"Average Precision: {avg_precision * 100:.2f}%")
-    print(f"Average Recall: {avg_recall * 100:.2f}%")
-    print(f"Average F1 Score: {avg_f1 * 100:.2f}%")
+    print(f"Mean Precision: {mean_precision * 100:.2f}%")
+    print(f"Mean Recall: {mean_recall * 100:.2f}%")
+    print(f"Mean F1 Score: {mean_f1 * 100:.2f}%")
+    print(f"Mean Average Precision (mAP): {mean_ap * 100:.2f}%")  # Print mAP
