@@ -26,14 +26,14 @@ LBP_BINS = 2**LBP_POINTS  # Number of bins for LBP histograms
 
 # Color spaces
 COLOR_SPACES = {
-    "BGR": "BGR",
-    "RGB": "RGB",
+    # "BGR": "BGR",
+    # "RGB": "RGB",
     "HSV": "HSV",
-    "HLS": "HLS",
+    # "HLS": "HLS",
     "LAB": "LAB",
     "YUV": "YUV",
-    "YCrCb": "YCrCb",
-    "XYZ": "XYZ",
+    # "YCrCb": "YCrCb",
+    # "XYZ": "XYZ",
 }
 
 # KNN retrieval constants

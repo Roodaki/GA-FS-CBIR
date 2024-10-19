@@ -13,8 +13,6 @@ from src.constants import (
     GA_PRECISION_WEIGHT,
     TOURNAMENT_SIZE,
     CROSSOVER_INDP_PROBABILITY,
-    LEAF_SIZE,
-    K_NEIGHBORS,
 )
 from src.knn_image_retrieval import load_histograms_from_csv, retrieve_similar_images
 from src.evaluation import calculate_metrics, load_ground_truth_labels
@@ -29,22 +27,35 @@ creator.create(
 creator.create("Individual", list, fitness=creator.FitnessWeighted)
 
 
-def initialize_population(number_of_individuals, number_of_features):
-    """Initialize a population of individuals with random feature selections.
+import random
+
+
+def initialize_population(number_of_individuals, number_of_features, max_attempts=1000):
+    """Initialize a population of unique individuals with random feature selections.
 
     Args:
         number_of_individuals (int): Number of individuals in the population.
         number_of_features (int): Total number of features available.
+        max_attempts (int): Maximum number of attempts to generate unique individuals.
 
     Returns:
-        list: A list of initialized individuals.
+        list: A list of initialized unique individuals.
     """
-    population = []
-    for _ in range(number_of_individuals):
-        # Randomly initialize a binary vector indicating selected features
-        individual = [random.randint(0, 1) for _ in range(number_of_features)]
-        population.append(creator.Individual(individual))
-    return population
+    population = set()
+    attempts = 0
+    while len(population) < number_of_individuals and attempts < max_attempts:
+        individual = tuple(random.randint(0, 1) for _ in range(number_of_features))
+        if individual not in population:
+            population.add(individual)  # Store as tuple instead of Individual
+        attempts += 1
+
+    if len(population) < number_of_individuals:
+        print(
+            f"Warning: Only {len(population)} unique individuals were generated after {max_attempts} attempts."
+        )
+
+    # Convert tuples back to Individual objects
+    return [creator.Individual(list(ind)) for ind in population]
 
 
 def evaluate_individual(individual, histograms, target_labels):
