@@ -28,8 +28,8 @@ def load_histograms_from_csv(csv_file_path, method="yeo-johnson", standardize=Tr
     Returns:
         np.ndarray: Array of transformed histograms with non-zero columns only.
     """
-    # Load the CSV file into a pandas DataFrame
-    histograms_df = pd.read_csv(csv_file_path)
+    # Load the CSV file into a pandas DataFrame, specifying no header
+    histograms_df = pd.read_csv(csv_file_path, header=None)
 
     # Remove columns that are all zeros
     non_zero_columns_df = histograms_df.loc[:, (histograms_df != 0).any(axis=0)]
@@ -54,7 +54,7 @@ def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
         k (int): Number of nearest neighbors to retrieve.
 
     Returns:
-        np.ndarray: Indices of the retrieved images.
+        tuple: Distances and indices of the retrieved images.
     """
     # Initialize the Nearest Neighbors model
     knn = KNeighborsClassifier(
@@ -72,7 +72,7 @@ def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
     # Find the k-nearest neighbors
     distances, indices = knn.kneighbors(query_histogram)
 
-    return indices.flatten()  # Return the indices of the nearest images
+    return distances.flatten(), indices.flatten()  # Return distances and indices
 
 
 def process_image_histogram(image_index, histograms):
@@ -98,13 +98,17 @@ def retrieve_and_save_images_for_all_dataset():
 
     # Load histograms from the CSV file
     histograms = load_histograms_from_csv(CSV_FILE_PATH)
-    print("csv file loaded.")
+    print(
+        f"csv file with {histograms.shape[0]} rows and {histograms.shape[1]} columns loaded."
+    )
 
     # Iterate over all images in the dataset
     for i in range(histograms.shape[0]):
         # Retrieve similar images for the current image
         query_histogram = process_image_histogram(i, histograms)
-        retrieved_indices = retrieve_similar_images(query_histogram, histograms)
+        distances, retrieved_indices = retrieve_similar_images(
+            query_histogram, histograms
+        )
 
         # Retrieve corresponding image filenames
         image_filenames = [
@@ -117,6 +121,11 @@ def retrieve_and_save_images_for_all_dataset():
 
         # Save the retrieved images in the folder
         save_retrieved_images(image_filenames, retrieval_folder)
+
+        # Save the retrieval rank information to CSV, excluding the query image
+        save_retrieval_rank_csv(
+            distances, image_filenames, retrieved_indices, i, retrieval_folder
+        )
 
         print(f"Retrieved images for image {i} saved in '{retrieval_folder}'")
 
@@ -137,3 +146,35 @@ def save_retrieved_images(retrieved_image_filenames, output_folder):
             shutil.copyfile(source_path, destination_path)
         else:
             print(f"Source image '{source_path}' not found. Skipping.")
+
+
+def save_retrieval_rank_csv(
+    distances, image_filenames, retrieved_indices, query_index, output_folder
+):
+    """
+    Save the retrieval rank, filename, and distance to a CSV file, excluding the query image itself.
+
+    Args:
+        distances (np.ndarray): Array of distances of the retrieved images.
+        image_filenames (list): List of retrieved image filenames.
+        retrieved_indices (np.ndarray): List of indices of the retrieved images.
+        query_index (int): Index of the query image.
+        output_folder (str): Directory to save the rank CSV.
+    """
+    rank_data = {"Retrieval Rank": [], "Retrieved Image Filename": [], "Distance": []}
+
+    rank = 1
+    for idx, (distance, image_filename, retrieved_idx) in enumerate(
+        zip(distances, image_filenames, retrieved_indices)
+    ):
+        if retrieved_idx != query_index:  # Skip the query image
+            rank_data["Retrieval Rank"].append(rank)
+            rank_data["Retrieved Image Filename"].append(image_filename)
+            rank_data["Distance"].append(distance)
+            rank += 1
+
+    # Save to CSV
+    rank_csv_path = os.path.join(output_folder, "rank.csv")
+    rank_df = pd.DataFrame(rank_data)
+    rank_df.to_csv(rank_csv_path, index=False)
+    print(f"Rank CSV saved at '{rank_csv_path}'")

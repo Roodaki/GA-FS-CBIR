@@ -12,10 +12,10 @@ if __name__ == "__main__":
     # process_all_images()
 
     # Retrieve and save images for each image in the dataset
-    # retrieve_and_save_images_for_all_dataset()
+    retrieve_and_save_images_for_all_dataset()
 
     # Evaluate the retrieval performance
-    # evaluate_all_retrievals()
+    evaluate_all_retrievals()
 
     # Run the genetic algorithm for feature selection
-    run_genetic_algorithm()
+    # run_genetic_algorithm()
