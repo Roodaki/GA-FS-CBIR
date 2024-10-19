@@ -1,6 +1,5 @@
-# utils/genetic_algorithm_utils.py
-
 import random
+import csv
 from deap import base, creator, tools
 import numpy as np
 from src.constants import (
@@ -13,6 +12,8 @@ from src.constants import (
     GA_PRECISION_WEIGHT,
     TOURNAMENT_SIZE,
     CROSSOVER_INDP_PROBABILITY,
+    GA_FEATURE_SELECTION_OUTPUT_FILE,
+    GA_RESULTS_CSV_FILE,
 )
 from src.knn_image_retrieval import load_histograms_from_csv, retrieve_similar_images
 from src.evaluation import calculate_metrics, load_ground_truth_labels
@@ -23,30 +24,50 @@ creator.create(
     base.Fitness,
     weights=(GA_PRECISION_WEIGHT, -(1 - GA_PRECISION_WEIGHT)),
 )  # Modify to two weights
-
 creator.create("Individual", list, fitness=creator.FitnessWeighted)
 
 
-import random
+def log_selected_features(generation, population):
+    """Logs selected feature indices for each individual in the population to a txt file."""
+    with open(GA_FEATURE_SELECTION_OUTPUT_FILE, "a") as file:
+        file.write(f"Generation {generation}:\n")
+        for individual in population:
+            selected_features = [
+                i for i, feature in enumerate(individual) if feature == 1
+            ]
+            file.write(f"{selected_features}\n")
+
+
+def log_ga_results(generation, sorted_population):
+    """Logs GA results to a CSV file for the current generation."""
+    with open(GA_RESULTS_CSV_FILE, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+
+        # For each individual in sorted population
+        for i, individual in enumerate(sorted_population):
+            num_selected_features = sum(
+                individual
+            )  # Count the number of selected features
+            avg_precision = individual.fitness.values[1]
+            fitness_value = individual.fitness.values[0]
+            row = [
+                generation,
+                fitness_value,
+                f"Individual {i + 1}",
+                num_selected_features,
+                avg_precision,
+            ]
+            writer.writerow(row)
 
 
 def initialize_population(number_of_individuals, number_of_features, max_attempts=1000):
-    """Initialize a population of unique individuals with random feature selections.
-
-    Args:
-        number_of_individuals (int): Number of individuals in the population.
-        number_of_features (int): Total number of features available.
-        max_attempts (int): Maximum number of attempts to generate unique individuals.
-
-    Returns:
-        list: A list of initialized unique individuals.
-    """
+    """Initialize a population of unique individuals with random feature selections."""
     population = set()
     attempts = 0
     while len(population) < number_of_individuals and attempts < max_attempts:
         individual = tuple(random.randint(0, 1) for _ in range(number_of_features))
         if individual not in population:
-            population.add(individual)  # Store as tuple instead of Individual
+            population.add(individual)
         attempts += 1
 
     if len(population) < number_of_individuals:
@@ -59,42 +80,25 @@ def initialize_population(number_of_individuals, number_of_features, max_attempt
 
 
 def evaluate_individual(individual, histograms, target_labels):
-    """Evaluate the fitness of an individual based on precision and feature count.
-
-    Args:
-        individual (Individual): The individual to evaluate.
-        histograms (np.ndarray): Histograms of all images.
-        target_labels (dict): Ground truth labels for the images.
-
-    Returns:
-        tuple: A tuple containing the weighted fitness value and average precision.
-    """
+    """Evaluate the fitness of an individual based on precision and feature count."""
     selected_features = [
         index for index, feature in enumerate(individual) if feature == 1
     ]
-
     if len(selected_features) == 0:
-        # If no features are selected, return a low precision score and high feature count
         return (
             -100.0,
             0.0,
         )  # Return a very negative fitness score for an invalid individual
 
-    # Filter histograms based on the selected features
     reduced_histograms = histograms[:, selected_features]
-
-    # Initialize precision accumulation variables
     total_precision = 0.0
-    total_images = len(target_labels)
+    total_images = min(len(target_labels), reduced_histograms.shape[0])
 
-    # Evaluate precision for each query image
     for i in range(total_images):
         query_histogram = reduced_histograms[i]
         retrieved_indices = retrieve_similar_images(query_histogram, reduced_histograms)
-
         query_filename = f"{i}.jpg"
         query_label = target_labels.get(query_filename, None)
-
         if query_label is None:
             continue
 
@@ -105,50 +109,31 @@ def evaluate_individual(individual, histograms, target_labels):
             1 for f in target_labels if target_labels[f] == query_label
         )
 
-        # True Positives: Correct class images retrieved
         tp = sum(1 for f in retrieved_filenames if target_labels.get(f) == query_label)
-        true_positives = tp
-
-        # False Positives: Incorrect class images retrieved
-        false_positives = len(retrieved_filenames) - tp
-
-        # Calculate precision for this image
         precision, _, _, _, _ = calculate_metrics(
-            true_positives, false_positives, relevant_images_count, total_images
+            tp, len(retrieved_filenames) - tp, relevant_images_count, total_images
         )
-
-        # Accumulate precision across all query images
         total_precision += precision
 
-    # Compute the average precision across all images
     avg_precision = total_precision / total_images
-
-    # Calculate the weighted fitness
     feature_count = len(selected_features)
     max_possible_features = len(individual)
-
-    # Normalize the number of features (to ensure it's on a comparable scale to precision)
     feature_ratio = feature_count / max_possible_features
 
-    # Weighted sum of precision and the feature count (inverted because fewer features is better)
     fitness_value = (GA_PRECISION_WEIGHT * avg_precision) - (
         (1 - GA_PRECISION_WEIGHT) * feature_ratio
     )
-
-    # Return fitness value as a tuple (weighted fitness, average precision)
-    return (fitness_value, avg_precision)
+    return fitness_value, avg_precision
 
 
 def run_genetic_algorithm():
     """Run the genetic algorithm for feature selection."""
-    # Load histograms and labels
     histograms = load_histograms_from_csv(CSV_FILE_PATH)
     target_labels = load_ground_truth_labels()
-
     number_of_features = histograms.shape[1]
     population = initialize_population(GA_POPULATION_SIZE, number_of_features)
 
-    # Register the genetic algorithm components
+    # Initialize the toolbox
     toolbox = base.Toolbox()
     toolbox.register("mate", tools.cxUniform, indpb=CROSSOVER_INDP_PROBABILITY)
     toolbox.register(
@@ -162,33 +147,40 @@ def run_genetic_algorithm():
         target_labels=target_labels,
     )
 
+    # CSV header
+    with open(GA_RESULTS_CSV_FILE, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(
+            [
+                "Generation",
+                "Best Weighted Fitness",
+                "Individual",
+                "Number of Features",
+                "Average Precision",
+            ]
+        )
+
     # Evolve the population
     for generation in range(GA_NUMBER_OF_GENERATIONS):
-        # Evaluate the individuals
         fitnesses = list(map(toolbox.evaluate, population))
         for individual, fitness in zip(population, fitnesses):
-            individual.fitness.values = (
-                fitness  # fitness should be a tuple with two values
-            )
+            individual.fitness.values = fitness
 
-        # Print details for each individual in this generation, sorted by fitness value
-        print(f"Generation {generation}:")
         sorted_population = sorted(
             population, key=lambda ind: ind.fitness.values[0], reverse=True
         )
-        for i, individual in enumerate(sorted_population):
-            # Count the number of selected features
-            num_selected_features = sum(individual)
-            avg_precision = individual.fitness.values[1]
-            print(
-                f"\tIndividual {i + 1}:\tSelected Features = {num_selected_features}\tAverage Precision = {avg_precision:.4f}"
-            )
+        best_fitness = sorted_population[0].fitness.values[0]
+        print(f"Generation {generation}: Best Weighted Fitness = {best_fitness:.4f}")
 
-        # Select the next generation individuals
+        # Log the selected features to a txt file
+        log_selected_features(generation, sorted_population)
+
+        # Log the GA results to the CSV file
+        log_ga_results(generation, sorted_population)
+
         offspring = toolbox.select(population, len(population))
         offspring = list(map(toolbox.clone, offspring))
 
-        # Apply crossover and mutation
         for child1, child2 in zip(offspring[::2], offspring[1::2]):
             if random.random() < GA_CROSSOVER_PROBABILITY:
                 toolbox.mate(child1, child2)
@@ -200,22 +192,8 @@ def run_genetic_algorithm():
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
-        # Replace the old population by the offspring
         population[:] = offspring
 
-        # Calculate best fitness while checking for valid fitness values
-        valid_fitness = [
-            ind.fitness.values[0] for ind in population if ind.fitness.valid
-        ]
-        if valid_fitness:  # Ensure there are valid fitness values to consider
-            best_fitness = max(valid_fitness)
-            print(
-                f"\tGeneration {generation}:\tBest Weighted Fitness = {best_fitness:.4f}\n"
-            )
-        else:
-            print(f"\tGeneration {generation}:\tNo valid fitness values.\n")
-
-    # Return the best individual after all generations
     best_individual = tools.selBest(population, 1)[0]
     selected_features_indices = [
         i for i, feature in enumerate(best_individual) if feature == 1
@@ -224,8 +202,8 @@ def run_genetic_algorithm():
     final_avg_precision = best_individual.fitness.values[1]
 
     print(
-        f"Best Individual: {best_individual}, Fitness: {best_individual.fitness.values}\n"
-        f"\tNumber of Selected Features: {num_selected_features}\n"
-        f"\tIndices of Selected Features: {selected_features_indices}\n"
-        f"\tFinal Average Precision: {final_avg_precision:.4f}"
+        f"Best Individual: {best_individual}, Fitness: {best_individual.fitness.values}"
     )
+    print(f"\tNumber of Selected Features: {num_selected_features}")
+    print(f"\tIndices of Selected Features: {selected_features_indices}")
+    print(f"\tFinal Average Precision: {final_avg_precision:.4f}")

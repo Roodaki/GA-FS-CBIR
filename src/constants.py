@@ -4,9 +4,12 @@ import os
 
 # Dataset paths
 IMAGE_DATASET_PATH = "data/corel-1k/"
-HISTOGRAM_OUTPUT_PATH = "data/histograms"
-RETRIEVED_IMAGES_PATH = "data/retrieved_images"
-
+HISTOGRAM_OUTPUT_PATH = "data/out/histograms/"
+RETRIEVED_IMAGES_PATH = "data/out/retrieved_images/"
+GA_FEATURE_SELECTION_OUTPUT_FILE = (
+    "data/out/genetic_algorithm/best_selected_features.txt"
+)
+GA_RESULTS_CSV_FILE = "data/out/genetic_algorithm/ga_log.csv"
 # CSV file containing image histograms
 CSV_FILENAME = "combined_histograms.csv"
 CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
@@ -50,11 +53,11 @@ INTRA_COLORSPACE_DIR = "intra_colorspace"
 INTER_COLORSPACE_DIR = "inter_colorspace"
 
 # Genetic Algorithm Constants
-GA_POPULATION_SIZE = 50  # Number of individuals in each generation
-GA_NUMBER_OF_GENERATIONS = 100  # Number of generations to evolve
+GA_POPULATION_SIZE = 150  # Number of individuals in each generation
+GA_NUMBER_OF_GENERATIONS = 1000  # Number of generations to evolve
 GA_CROSSOVER_PROBABILITY = 0.8  # Probability of crossover between individuals
 GA_MUTATION_PROBABILITY = 0.2  # Probability of mutation in individuals
 GA_MUTATION_INDEPENDENCE_PROBABILITY = 0.05  # Probability for each gene to mutate
-GA_PRECISION_WEIGHT = 0.5  # Higher value prioritizes precision; lower value prioritizes minimizing features
+GA_PRECISION_WEIGHT = 0.7  # Higher value prioritizes precision; lower value prioritizes minimizing features
 TOURNAMENT_SIZE = 3  # Tournament size for selection
 CROSSOVER_INDP_PROBABILITY = 0.6  # Probability for independent crossover per gene

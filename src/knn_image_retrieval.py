@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.preprocessing import PowerTransformer  # Importing PowerTransformer
+from sklearn.preprocessing import PowerTransformer
 from sklearn.neighbors import KNeighborsClassifier
 import os
 import shutil
@@ -29,7 +29,7 @@ def load_histograms_from_csv(csv_file_path, method="yeo-johnson", standardize=Tr
         np.ndarray: Array of transformed histograms with non-zero columns only.
     """
     # Load the CSV file into a pandas DataFrame
-    histograms_df = pd.read_csv(csv_file_path, header=0)
+    histograms_df = pd.read_csv(csv_file_path)
 
     # Remove columns that are all zeros
     non_zero_columns_df = histograms_df.loc[:, (histograms_df != 0).any(axis=0)]
