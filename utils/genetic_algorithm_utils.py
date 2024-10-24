@@ -6,7 +6,7 @@ from src.constants import (
     GA_POPULATION_SIZE,
     GA_NUMBER_OF_GENERATIONS,
     GA_CROSSOVER_PROBABILITY,
-    GA_MUTATION_PROBABILITY,
+    GA_BASE_MUTATION_PROBABILITY,
     GA_MUTATION_INDEPENDENCE_PROBABILITY,
     CSV_FILE_PATH,
     GA_PRECISION_WEIGHT,
@@ -39,9 +39,15 @@ def log_selected_features(generation, population):
 
 
 def log_ga_results(generation, sorted_population):
-    """Logs GA results to a CSV file for the current generation."""
+    """Logs GA results to a CSV file and prints them to the console."""
     with open(GA_RESULTS_CSV_FILE, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
+
+        print(f"\nGeneration {generation} Results:")
+        print(
+            f"{'Individual':<12} {'Fitness':<20} {'Num Features':<15} {'Mean Precision':<15}"
+        )
+        print("=" * 70)
 
         # For each individual in sorted population
         for i, individual in enumerate(sorted_population):
@@ -53,11 +59,14 @@ def log_ga_results(generation, sorted_population):
             row = [
                 generation,
                 fitness_value,
-                f"Individual {i + 1}",
+                f"{i + 1}",
                 num_selected_features,
                 avg_precision,
             ]
             writer.writerow(row)
+
+            # Print the formatted output
+            print(f"{row[2]:<12} {row[1]:<20.4f} {row[3]:<15} {row[4]:<15.4f}")
 
 
 def initialize_population(number_of_individuals, number_of_features, max_attempts=1000):
@@ -96,7 +105,9 @@ def evaluate_individual(individual, histograms, target_labels):
 
     for i in range(total_images):
         query_histogram = reduced_histograms[i]
-        retrieved_indices = retrieve_similar_images(query_histogram, reduced_histograms)
+        _, retrieved_indices = retrieve_similar_images(
+            query_histogram, reduced_histograms
+        )
         query_filename = f"{i}.jpg"
         query_label = target_labels.get(query_filename, None)
         if query_label is None:
@@ -156,7 +167,7 @@ def run_genetic_algorithm():
                 "Best Weighted Fitness",
                 "Individual",
                 "Number of Features",
-                "Average Precision",
+                "Mean Precision",
             ]
         )
 
@@ -188,7 +199,7 @@ def run_genetic_algorithm():
                 del child2.fitness.values
 
         for mutant in offspring:
-            if random.random() < GA_MUTATION_PROBABILITY:
+            if random.random() < GA_BASE_MUTATION_PROBABILITY:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
@@ -206,4 +217,4 @@ def run_genetic_algorithm():
     )
     print(f"\tNumber of Selected Features: {num_selected_features}")
     print(f"\tIndices of Selected Features: {selected_features_indices}")
-    print(f"\tFinal Average Precision: {final_avg_precision:.4f}")
+    print(f"\tFinal Mean Precision: {final_avg_precision:.4f}")
