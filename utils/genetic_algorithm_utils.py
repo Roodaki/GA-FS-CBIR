@@ -1,7 +1,7 @@
 import random
 import csv
 from deap import base, creator, tools
-import numpy as np
+import multiprocessing
 from src.constants import (
     GA_POPULATION_SIZE,
     GA_NUMBER_OF_GENERATIONS,
@@ -138,7 +138,7 @@ def evaluate_individual(individual, histograms, target_labels):
 
 
 def run_genetic_algorithm():
-    """Run the genetic algorithm for feature selection."""
+    """Run the genetic algorithm for feature selection with parallel evaluation."""
     histograms = load_histograms_from_csv(CSV_FILE_PATH)
     target_labels = load_ground_truth_labels()
     number_of_features = histograms.shape[1]
@@ -171,40 +171,51 @@ def run_genetic_algorithm():
             ]
         )
 
-    # Evolve the population
-    for generation in range(GA_NUMBER_OF_GENERATIONS):
-        fitnesses = list(map(toolbox.evaluate, population))
-        for individual, fitness in zip(population, fitnesses):
-            individual.fitness.values = fitness
+    # Create a pool of workers
+    with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+        toolbox.register("map", pool.map)  # Register parallel map
 
-        sorted_population = sorted(
-            population, key=lambda ind: ind.fitness.values[0], reverse=True
-        )
-        best_fitness = sorted_population[0].fitness.values[0]
-        print(f"Generation {generation}: Best Weighted Fitness = {best_fitness:.4f}")
+        # Evolve the population
+        for generation in range(GA_NUMBER_OF_GENERATIONS):
+            # Evaluate the entire population in parallel
+            fitnesses = toolbox.map(toolbox.evaluate, population)
+            for individual, fitness in zip(population, fitnesses):
+                individual.fitness.values = fitness
 
-        # Log the selected features to a txt file
-        log_selected_features(generation, sorted_population)
+            # Sort population based on fitness and log results
+            sorted_population = sorted(
+                population, key=lambda ind: ind.fitness.values[0], reverse=True
+            )
+            best_fitness = sorted_population[0].fitness.values[0]
+            print(
+                f"Generation {generation}: Best Weighted Fitness = {best_fitness:.4f}"
+            )
 
-        # Log the GA results to the CSV file
-        log_ga_results(generation, sorted_population)
+            # Log selected features and GA results
+            log_selected_features(generation, sorted_population)
+            log_ga_results(generation, sorted_population)
 
-        offspring = toolbox.select(population, len(population))
-        offspring = list(map(toolbox.clone, offspring))
+            # Select, clone, and apply crossover and mutation to produce offspring
+            offspring = toolbox.select(population, len(population))
+            offspring = list(map(toolbox.clone, offspring))
 
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
-            if random.random() < GA_CROSSOVER_PROBABILITY:
-                toolbox.mate(child1, child2)
-                del child1.fitness.values
-                del child2.fitness.values
+            # Apply crossover on offspring
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+                if random.random() < GA_CROSSOVER_PROBABILITY:
+                    toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
 
-        for mutant in offspring:
-            if random.random() < GA_BASE_MUTATION_PROBABILITY:
-                toolbox.mutate(mutant)
-                del mutant.fitness.values
+            # Apply mutation on offspring
+            for mutant in offspring:
+                if random.random() < GA_BASE_MUTATION_PROBABILITY:
+                    toolbox.mutate(mutant)
+                    del mutant.fitness.values
 
-        population[:] = offspring
+            # Update the population for the next generation
+            population[:] = offspring
 
+    # Log the best individual after all generations
     best_individual = tools.selBest(population, 1)[0]
     selected_features_indices = [
         i for i, feature in enumerate(best_individual) if feature == 1
