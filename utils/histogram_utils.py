@@ -9,6 +9,7 @@ from skimage.feature import local_binary_pattern  # Import LBP function from ski
 from src.constants import (
     HISTOGRAM_BINS,
     HISTOGRAM_2D_BINS,
+    IMAGE_FILE_EXTENSION,
     LBP_POINTS,
     LBP_RADIUS,
     LBP_BINS,
@@ -84,7 +85,7 @@ def plot_and_save_histograms(histograms, output_folder):
         plt.tight_layout()
 
         # Construct file path
-        histogram_filename = os.path.join(output_folder, f"{key}.jpg")
+        histogram_filename = os.path.join(output_folder, f"{key}{IMAGE_FILE_EXTENSION}")
         plt.savefig(histogram_filename)
         plt.close()
 
@@ -104,7 +105,7 @@ def plot_and_save_2d_histograms(histograms, output_folder):
         plt.tight_layout()
 
         # Construct file path
-        histogram_filename = os.path.join(output_folder, f"{key}.jpg")
+        histogram_filename = os.path.join(output_folder, f"{key}{IMAGE_FILE_EXTENSION}")
         plt.savefig(histogram_filename)
         plt.close()
 

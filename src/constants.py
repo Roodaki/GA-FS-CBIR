@@ -3,7 +3,7 @@
 import os
 
 # Dataset paths
-IMAGE_DATASET_PATH = "data/corel-1k/"
+IMAGE_DATASET_PATH = "data/Corel-10K/"
 HISTOGRAM_OUTPUT_PATH = "data/out/histograms/"
 RETRIEVED_IMAGES_PATH = "data/out/retrieved_images/"
 GA_FEATURE_SELECTION_OUTPUT_FILE = (
@@ -15,7 +15,7 @@ CSV_FILENAME = "combined_histograms.csv"
 CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 
 # Image file extension
-IMAGE_FILE_EXTENSION = ".jpg"
+IMAGE_FILE_EXTENSION = ".jpeg"
 
 # Image processing constants
 IMAGE_SIZE = (8, 8)  # Resize images to this size for faster processing
@@ -41,10 +41,10 @@ COLOR_SPACES = {
 
 # KNN retrieval constants
 K_NEIGHBORS = 10  # Number of images to retrieve
-LEAF_SIZE = 30  # Leaf size for KNN (used in image retrieval)
+LEAF_SIZE = 100  # Leaf size for KNN (used in image retrieval)
 
 # Evaluation metrics constants
-NUM_CLASSES = 10  # Number of classes in the dataset (0-999 with 100 per class)
+NUM_CLASSES = 100  # Number of classes in the dataset (0-999 with 100 per class)
 NUM_IMAGES_PER_CLASS = 100  # Define number of images per class
 
 # Directories

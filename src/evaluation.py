@@ -3,7 +3,12 @@
 import os
 import csv
 import logging
-from src.constants import NUM_CLASSES, NUM_IMAGES_PER_CLASS, RETRIEVED_IMAGES_PATH
+from src.constants import (
+    IMAGE_FILE_EXTENSION,
+    NUM_CLASSES,
+    NUM_IMAGES_PER_CLASS,
+    RETRIEVED_IMAGES_PATH,
+)
 from utils.image_utils import natural_sort_key
 
 # Setup logging
@@ -22,7 +27,7 @@ def load_ground_truth_labels() -> dict:
     labels = {}
     for i in range(NUM_CLASSES):
         for j in range(NUM_IMAGES_PER_CLASS):
-            filename = f"{i * NUM_IMAGES_PER_CLASS + j}.jpg"
+            filename = f"{i * NUM_IMAGES_PER_CLASS + j}{IMAGE_FILE_EXTENSION}"
             labels[filename] = i
     return labels
 
@@ -128,7 +133,7 @@ def evaluate_all_retrievals():
         folder_path = os.path.join(RETRIEVED_IMAGES_PATH, folder_name)
 
         if os.path.isdir(folder_path):
-            query_filename = f"{folder_name}.jpg"
+            query_filename = f"{folder_name}{IMAGE_FILE_EXTENSION}"
             if query_filename not in ground_truth_labels:
                 continue  # Skip if query filename not in labels
 
@@ -142,7 +147,7 @@ def evaluate_all_retrievals():
             retrieved_filenames = [
                 f
                 for f in os.listdir(folder_path)
-                if f.endswith(".jpg") and f != query_filename
+                if f.endswith(IMAGE_FILE_EXTENSION) and f != query_filename
             ]
             num_retrieved = len(retrieved_filenames)
             relevant_images_count = sum(

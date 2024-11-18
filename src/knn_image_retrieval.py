@@ -1025,8 +1025,7 @@ def retrieve_similar_images(query_histogram, histograms, k=K_NEIGHBORS):
         n_neighbors=k + 1,  # +1 to account for excluding the query image
         metric="canberra",  # Using Canberra distance
         weights="distance",  # Weight neighbors by their distance
-        algorithm="ball_tree",  # Or 'auto' for the best choice
-        leaf_size=LEAF_SIZE,  # Adjust leaf_size as necessary
+        algorithm="auto",  # Or 'auto' for the best choice
     )
     knn.fit(histograms, np.arange(histograms.shape[0]))
 

@@ -10,6 +10,7 @@ from src.constants import (
     GA_MUTATION_INDEPENDENCE_PROBABILITY,
     CSV_FILE_PATH,
     GA_PRECISION_WEIGHT,
+    IMAGE_FILE_EXTENSION,
     TOURNAMENT_SIZE,
     CROSSOVER_INDP_PROBABILITY,
     GA_FEATURE_SELECTION_OUTPUT_FILE,
@@ -108,13 +109,15 @@ def evaluate_individual(individual, histograms, target_labels):
         _, retrieved_indices = retrieve_similar_images(
             query_histogram, reduced_histograms
         )
-        query_filename = f"{i}.jpg"
+        query_filename = f"{i}{IMAGE_FILE_EXTENSION}"
         query_label = target_labels.get(query_filename, None)
         if query_label is None:
             continue
 
         retrieved_filenames = [
-            f"{index}.jpg" for index in retrieved_indices if index != i
+            f"{index}{IMAGE_FILE_EXTENSION}"
+            for index in retrieved_indices
+            if index != i
         ]
         relevant_images_count = sum(
             1 for f in target_labels if target_labels[f] == query_label
