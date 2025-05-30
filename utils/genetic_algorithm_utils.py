@@ -2,6 +2,8 @@ import random
 import csv
 from deap import base, creator, tools
 import multiprocessing
+import numpy as np  # Added import
+from sklearn.neighbors import KNeighborsClassifier  # Added import
 from src.constants import (
     GA_POPULATION_SIZE,
     GA_NUMBER_OF_GENERATIONS,
@@ -15,6 +17,7 @@ from src.constants import (
     CROSSOVER_INDP_PROBABILITY,
     GA_FEATURE_SELECTION_OUTPUT_FILE,
     GA_RESULTS_CSV_FILE,
+    K_NEIGHBORS,  # Added K_NEIGHBORS to imports
 )
 from src.knn_image_retrieval import load_histograms_from_csv, retrieve_similar_images
 from src.evaluation import calculate_metrics, load_ground_truth_labels
@@ -104,10 +107,22 @@ def evaluate_individual(individual, histograms, target_labels):
     total_precision = 0.0
     total_images = min(len(target_labels), reduced_histograms.shape[0])
 
+    # Initialize and fit KNN model for the current individual's feature subset
+    # K_NEIGHBORS from constants is used here for n_neighbors
+    knn_model = KNeighborsClassifier(
+        n_neighbors=K_NEIGHBORS + 1,  # +1 to account for excluding the query image
+        metric="canberra",  # Using Canberra distance (consistent with original knn_image_retrieval)
+        weights="distance",  # Weight neighbors by their distance
+        algorithm="auto",  # Or 'auto' for the best choice
+    )
+    # Fit the model with the reduced set of histograms (features selected by GA)
+    knn_model.fit(reduced_histograms, np.arange(reduced_histograms.shape[0]))
+
     for i in range(total_images):
         query_histogram = reduced_histograms[i]
+        # Use the pre-fitted knn_model for the current feature subset
         _, retrieved_indices = retrieve_similar_images(
-            query_histogram, reduced_histograms
+            query_histogram, knn_model  # Pass the fitted model
         )
         query_filename = f"{i}{IMAGE_FILE_EXTENSION}"
         query_label = target_labels.get(query_filename, None)
@@ -117,7 +132,7 @@ def evaluate_individual(individual, histograms, target_labels):
         retrieved_filenames = [
             f"{index}{IMAGE_FILE_EXTENSION}"
             for index in retrieved_indices
-            if index != i
+            if index != i  # Exclude the query image itself
         ]
         relevant_images_count = sum(
             1 for f in target_labels if target_labels[f] == query_label
@@ -129,10 +144,14 @@ def evaluate_individual(individual, histograms, target_labels):
         )
         total_precision += precision
 
-    avg_precision = total_precision / total_images
+    avg_precision = (
+        total_precision / total_images if total_images > 0 else 0.0
+    )  # Ensure no division by zero
     feature_count = len(selected_features)
     max_possible_features = len(individual)
-    feature_ratio = feature_count / max_possible_features
+    feature_ratio = (
+        feature_count / max_possible_features if max_possible_features > 0 else 0.0
+    )  # Ensure no division by zero
 
     fitness_value = (GA_PRECISION_WEIGHT * avg_precision) - (
         (1 - GA_PRECISION_WEIGHT) * feature_ratio
@@ -157,7 +176,7 @@ def run_genetic_algorithm():
     toolbox.register(
         "evaluate",
         evaluate_individual,
-        histograms=histograms,
+        histograms=histograms,  # Pass the full histograms here
         target_labels=target_labels,
     )
 
@@ -175,6 +194,8 @@ def run_genetic_algorithm():
         )
 
     # Create a pool of workers
+    # Note: If evaluate_individual becomes very complex or has GIL-bound parts,
+    # multiprocessing might not give linear speedup. Sklearn's KNN is often C-backed and can release GIL.
     with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
         toolbox.register("map", pool.map)  # Register parallel map
 
@@ -224,7 +245,7 @@ def run_genetic_algorithm():
         i for i, feature in enumerate(best_individual) if feature == 1
     ]
     num_selected_features = len(selected_features_indices)
-    final_avg_precision = best_individual.fitness.values[1]
+    final_avg_precision = best_individual.fitness.values[1]  # Index 1 is avg_precision
 
     print(
         f"Best Individual: {best_individual}, Fitness: {best_individual.fitness.values}"
