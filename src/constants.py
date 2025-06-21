@@ -3,7 +3,7 @@
 import os
 
 # Dataset paths
-IMAGE_DATASET_PATH = "data/Corel-10K/"
+IMAGE_DATASET_PATH = "data\Datasets\Corel-1K"
 HISTOGRAM_OUTPUT_PATH = "data/out/histograms/"
 RETRIEVED_IMAGES_PATH = "data/out/retrieved_images/"
 GA_FEATURE_SELECTION_OUTPUT_FILE = (
@@ -11,11 +11,11 @@ GA_FEATURE_SELECTION_OUTPUT_FILE = (
 )
 GA_RESULTS_CSV_FILE = "data/out/genetic_algorithm/ga_log.csv"
 # CSV file containing image histograms
-CSV_FILENAME = "combined_histograms.csv"
+CSV_FILENAME = "corel1k_combined_histograms.csv"
 CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 
 # Image file extension
-IMAGE_FILE_EXTENSION = ".jpeg"
+IMAGE_FILE_EXTENSION = ".jpg"
 
 # Image processing constants
 IMAGE_SIZE = (8, 8)  # Resize images to this size for faster processing
