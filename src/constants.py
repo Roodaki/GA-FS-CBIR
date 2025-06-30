@@ -3,7 +3,7 @@
 import os
 
 # Dataset paths
-IMAGE_DATASET_PATH = "data\Datasets\Produce_1400\Produce_1400_Flattened"
+IMAGE_DATASET_PATH = "data\Datasets\Corel-10K"
 HISTOGRAM_OUTPUT_PATH = "data/out/histograms/"
 RETRIEVED_IMAGES_PATH = "data/out/retrieved_images/"
 GA_FEATURE_SELECTION_OUTPUT_FILE = (
@@ -11,11 +11,11 @@ GA_FEATURE_SELECTION_OUTPUT_FILE = (
 )
 GA_RESULTS_CSV_FILE = "data/out/genetic_algorithm/ga_log.csv"
 # CSV file containing image histograms
-CSV_FILENAME = "Produce1400_combined_histograms.csv"
+CSV_FILENAME = "Corel-10K_vgg16.csv"
 CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 
 # Image file extension
-IMAGE_FILE_EXTENSION = ".jpg"
+IMAGE_FILE_EXTENSION = ".jpeg"
 
 # Image processing constants
 IMAGE_SIZE = (8, 8)  # Resize images to this size for faster processing
@@ -44,7 +44,7 @@ K_NEIGHBORS = 10  # Number of images to retrieve
 LEAF_SIZE = 100  # Leaf size for KNN (used in image retrieval)
 
 # Evaluation metrics constants
-NUM_CLASSES = 14  # Number of classes in the dataset (0-999 with 100 per class)
+NUM_CLASSES = 100  # Number of classes in the dataset (0-999 with 100 per class)
 NUM_IMAGES_PER_CLASS = 100  # Define number of images per class
 
 # Directories

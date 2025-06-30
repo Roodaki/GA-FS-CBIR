@@ -44,6 +44,8 @@ def log_selected_features(generation, population):
 
 def log_ga_results(generation, sorted_population):
     """Logs GA results to a CSV file and prints them to the console."""
+    NUM_TOP_INDIVIDUALS_TO_PRINT = 10
+
     with open(GA_RESULTS_CSV_FILE, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
 
@@ -70,7 +72,8 @@ def log_ga_results(generation, sorted_population):
             writer.writerow(row)
 
             # Print the formatted output
-            print(f"{row[2]:<12} {row[1]:<20.4f} {row[3]:<15} {row[4]:<15.4f}")
+            if i < NUM_TOP_INDIVIDUALS_TO_PRINT:
+                print(f"{row[2]:<12} {row[1]:<20.4f} {row[3]:<15} {row[4]:<15.4f}")
 
 
 def initialize_population(number_of_individuals, number_of_features, max_attempts=1000):
@@ -86,6 +89,10 @@ def initialize_population(number_of_individuals, number_of_features, max_attempt
     if len(population) < number_of_individuals:
         print(
             f"Warning: Only {len(population)} unique individuals were generated after {max_attempts} attempts."
+        )
+    else:
+        print(
+            f"{number_of_individuals} individuals with {number_of_features} features initialized successfully."
         )
 
     # Convert tuples back to Individual objects
