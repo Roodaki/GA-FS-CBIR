@@ -11,7 +11,7 @@ GA_FEATURE_SELECTION_OUTPUT_FILE = (
 )
 GA_RESULTS_CSV_FILE = "data/out/genetic_algorithm/ga_log.csv"
 # CSV file containing image histograms
-CSV_FILENAME = "Corel-10K_vgg16.csv"
+CSV_FILENAME = "Corel-10K_convnext_large.csv"
 CSV_FILE_PATH = os.path.join(HISTOGRAM_OUTPUT_PATH, CSV_FILENAME)
 
 # Image file extension
