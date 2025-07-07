@@ -23,7 +23,7 @@ MODEL_NAMES = [
     #     "vgg13_bn",
     "vgg16",
     #     "vgg16_bn",
-    #     "vgg19",
+    "vgg19",
     #     "vgg19_bn",
     # ResNet Family and its derivatives
     #     "resnet18",

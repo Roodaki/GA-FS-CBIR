@@ -18,4 +18,4 @@ if __name__ == "__main__":
     evaluate_all_retrievals()
 
     # Run the genetic algorithm for feature selection
-    # run_genetic_algorithm()
+    run_genetic_algorithm()
