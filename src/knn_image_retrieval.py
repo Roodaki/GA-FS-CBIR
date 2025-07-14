@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import PowerTransformer, QuantileTransformer
@@ -2510,6 +2511,8 @@ def retrieve_and_save_images_for_all_dataset():
     # Fit the model with all histograms
     knn_model.fit(histograms, np.arange(histograms.shape[0]))
 
+    start_time = time.time()
+
     # Iterate over all images in the dataset
     for i in range(histograms.shape[0]):
         # Retrieve the histogram for the current query image
@@ -2538,6 +2541,10 @@ def retrieve_and_save_images_for_all_dataset():
         )
 
         print(f"Retrieved images for image {i} saved in '{retrieval_folder}'")
+
+    end_time = time.time()
+
+    print(f"Image retrieval finished in {end_time - start_time:.2f} seconds.")
 
 
 def save_retrieved_images(retrieved_image_filenames, output_folder):
@@ -2587,4 +2594,4 @@ def save_retrieval_rank_csv(
     rank_csv_path = os.path.join(output_folder, "rank.csv")
     rank_df = pd.DataFrame(rank_data)
     rank_df.to_csv(rank_csv_path, index=False)
-    print(f"Rank CSV saved at '{rank_csv_path}'")
+    # print(f"Rank CSV saved at '{rank_csv_path}'")
