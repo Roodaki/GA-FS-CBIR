@@ -132,13 +132,16 @@ The Genetic Algorithm consistently improves the population's precision over gene
 If you use this code or the datasets in your research, please cite [our IEEE Access paper](https://doi.org/10.1109/ACCESS.2025.3633906):
 
 ```bibtex
-@article{roodaki2025genetic,
-author={Roodaki, AmirHossein and Sotoodeh, Mahmood and Moosavi, Mohammad Reza},
+@ARTICLE{11251209,
+  author={Roodaki, Amirhossein and Sotoodeh, Mahmood and Reza Moosavi, Mohammad},
   journal={IEEE Access}, 
-  title={Genetic Algorithm-Based Feature Selection from High-Dimensional Descriptors for Improved Content-Based Image Retrieval},
+  title={Genetic Algorithm-Based Feature Selection From High-Dimensional Descriptors for Improved Content-Based Image Retrieval}, 
   year={2025},
-  doi={10.1109/ACCESS.2025.3633906}
-}}
+  volume={13},
+  number={},
+  pages={198034-198053},
+  keywords={Image color analysis;Feature extraction;Histograms;Genetic algorithms;Accuracy;Image retrieval;Computational efficiency;Visualization;Dimensionality reduction;Scalability;Content-based image retrieval;deep features reduction;dimensionality reduction;evolutionary optimization;feature selection;genetic algorithm;handcrafted features},
+  doi={10.1109/ACCESS.2025.3633906}}
 ```
 
 ## License
